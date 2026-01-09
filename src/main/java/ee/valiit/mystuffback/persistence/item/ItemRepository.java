@@ -2,6 +2,7 @@ package ee.valiit.mystuffback.persistence.item;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -12,6 +13,10 @@ import java.util.List;
 
         @Query("select (count(i) > 0) from Item i where i.name = :itemName")
         boolean itemExistsBy(String itemName);
+
+        @Query("select i from Item i where i.qrToken = :qrToken and i.status = 'A'")
+        Optional<Item> findActiveItemByQrToken(String qrToken);
+
 
     }
 

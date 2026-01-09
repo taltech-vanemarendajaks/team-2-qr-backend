@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.awt.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.ITEM_NAME_UNAVAILABLE;
 
@@ -38,6 +39,7 @@ public class ItemService {
         User user = userService.getValidUser(userId);
         Item item = itemMapper.toItem(itemDto);
         item.setUser(user);
+        item.setQrToken(UUID.randomUUID().toString().replace("-", ""));
         itemRepository.save(item);
         handleAddItemImage(item, itemDto.getImageData());
     }

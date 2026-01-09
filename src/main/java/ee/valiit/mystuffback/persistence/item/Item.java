@@ -46,4 +46,8 @@ public class Item {
     @Column(name = "status", nullable = false, length = 1)
     private String status;
 
+    @Column(name = "qr_token", length = 64, unique = true)
+    private String qrToken;
+
+
 }
