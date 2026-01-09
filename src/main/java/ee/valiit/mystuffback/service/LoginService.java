@@ -19,7 +19,7 @@ public class LoginService {
     private final UserMapper userMapper;
 
     public LoginResponse login(String username, String password) {
-        User user = getValidActiveUser(username, password);
+        User user = getValidActiveUser(username.trim(), password);
         return userMapper.toLoginResponse(user);
     }
 
@@ -30,7 +30,7 @@ public class LoginService {
                         INCORRECT_CREDENTIALS.getErrorCode()
                 ));
 
-        if (!user.getPassword().equals(password)) {
+        if (!password.equals(user.getPassword())) {
             throw new ForbiddenException(
                     INCORRECT_CREDENTIALS.getMessage(),
                     INCORRECT_CREDENTIALS.getErrorCode()
