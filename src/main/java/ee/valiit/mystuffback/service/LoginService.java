@@ -24,7 +24,20 @@ public class LoginService {
     }
 
     private User getValidActiveUser(String username, String password) {
-        return userRepository.findActiveUserBy(username, password)
-                .orElseThrow(() -> new ForbiddenException(INCORRECT_CREDENTIALS.getMessage(), INCORRECT_CREDENTIALS.getErrorCode()));
+        User user = userRepository.findActiveUserByUsername(username)
+                .orElseThrow(() -> new ForbiddenException(
+                        INCORRECT_CREDENTIALS.getMessage(),
+                        INCORRECT_CREDENTIALS.getErrorCode()
+                ));
+
+        if (!user.getPassword().equals(password)) {
+            throw new ForbiddenException(
+                    INCORRECT_CREDENTIALS.getMessage(),
+                    INCORRECT_CREDENTIALS.getErrorCode()
+            );
+        }
+
+        return user;
     }
+
 }

@@ -1,5 +1,6 @@
 package ee.valiit.mystuffback.controller.login;
 
+import ee.valiit.mystuffback.controller.login.dto.LoginRequest;
 import ee.valiit.mystuffback.controller.login.dto.LoginResponse;
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
 import ee.valiit.mystuffback.service.LoginService;
@@ -8,29 +9,36 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/auth")
 public class LoginController {
 
     private final LoginService loginService;
 
-    @GetMapping("/login")
-    @Operation(summary = "Logging in. Returns userId and roleName",
+    @PostMapping("/login")
+    @Operation(
+            summary = "Log in",
             description = """
-                       The system searches for a user using username and password, whose account is also active.
-                       If no match is found, an error with errorCode 111 is thrown.""")
+                    Authenticates a user with username and password.
+                    Only active users can log in.
+                    Returns user id and role name.
+                    If credentials are invalid, returns errorCode 111.
+                    """
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK"),
-            @ApiResponse(responseCode = "403", description = "Username or password incorrect", content = @Content(schema = @Schema(implementation = ApiError.class)))})
-    public LoginResponse login(@RequestParam String username, @RequestParam String password) {
-        return loginService.login(username, password);
+            @ApiResponse(responseCode = "200", description = "Login successful"),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Username or password incorrect",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))
+            )
+    })
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        return loginService.login(request.getUsername(), request.getPassword());
     }
 }
-
-
-
