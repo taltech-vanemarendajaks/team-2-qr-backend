@@ -15,7 +15,7 @@ public class LoginRequest {
     private String username;
 
     @NotBlank(message = "Password is required")
-    @Size(max = 50, message = "Password must be at most 50 characters")
+    @Size(max = 255, message = "Password must be at most 255 characters")
     @Schema(description = "User's password", example = "Secret123!")
     private String password;
 }
