@@ -32,11 +32,10 @@ public class LoginController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Login successful"),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Username or password incorrect",
-                    content = @Content(schema = @Schema(implementation = ApiError.class))
-            )
+            @ApiResponse(responseCode = "403", description = "Username or password incorrect",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
     })
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return loginService.login(request.getUsername(), request.getPassword());

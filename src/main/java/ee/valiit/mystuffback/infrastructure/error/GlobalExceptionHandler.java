@@ -20,11 +20,11 @@ public class GlobalExceptionHandler {
 
         String message = (firstError != null && firstError.getDefaultMessage() != null)
                 ? firstError.getDefaultMessage()
-                : "Invalid request";
+                : Error.VALIDATION_ERROR.getMessage();
 
         ApiError apiError = new ApiError();
         apiError.setMessage(message);
-        apiError.setErrorCode(400);
+        apiError.setErrorCode(Error.VALIDATION_ERROR.getErrorCode());
         return apiError;
     }
 
@@ -34,11 +34,11 @@ public class GlobalExceptionHandler {
         String message = ex.getConstraintViolations().stream()
                 .findFirst()
                 .map(v -> v.getMessage())
-                .orElse("Invalid request");
+                .orElse(Error.VALIDATION_ERROR.getMessage());
 
         ApiError apiError = new ApiError();
         apiError.setMessage(message);
-        apiError.setErrorCode(400);
+        apiError.setErrorCode(Error.VALIDATION_ERROR.getErrorCode());
         return apiError;
     }
 }
