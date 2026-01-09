@@ -10,9 +10,11 @@ import ee.valiit.mystuffback.persistence.user.UserMapper;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static ee.valiit.mystuffback.infrastructure.error.Error.EMAIL_UNAVAILABLE;
 import static ee.valiit.mystuffback.infrastructure.error.Error.USERNAME_UNAVAILABLE;
 
 @Service
@@ -23,13 +25,25 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
 
     @Transactional
     public void addUser(@Valid UserDto userDto) {
-        validateUserNameIsAvailable(userDto.getUsername());
+        String username = userDto.getUsername().trim();
+        String email = userDto.getEmail().trim();
+
+        validateUserNameIsAvailable(username);
+        validateEmailIsAvailable(email);
+
         Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME);
         User user = userMapper.toUser(userDto);
+
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(role);
+
         userRepository.save(user);
     }
 
@@ -42,6 +56,13 @@ public class UserService {
         boolean usernameExists = userRepository.usernameExistsBy(username);
         if (usernameExists) {
             throw new ForbiddenException(USERNAME_UNAVAILABLE.getMessage(), USERNAME_UNAVAILABLE.getErrorCode());
+        }
+    }
+
+    private void validateEmailIsAvailable(String email) {
+        boolean emailExists = userRepository.emailExistsBy(email);
+        if (emailExists) {
+            throw new ForbiddenException(EMAIL_UNAVAILABLE.getMessage(), EMAIL_UNAVAILABLE.getErrorCode());
         }
     }
 

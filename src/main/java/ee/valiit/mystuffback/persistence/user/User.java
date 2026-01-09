@@ -22,7 +22,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @Size(max = 50)
     @NotNull
     @Column(name = "username", nullable = false, length = 50)
     private String username;
@@ -32,12 +31,10 @@ public class User {
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 
-    @Size(max = 50)
     @NotNull
-    @Column(name = "email", nullable = false, length = 50)
+    @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    @Size(max = 1)
     @NotNull
     @Column(name = "status", nullable = false, length = 1)
     private String status;

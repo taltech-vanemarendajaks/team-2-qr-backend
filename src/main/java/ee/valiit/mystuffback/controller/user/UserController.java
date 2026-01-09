@@ -18,11 +18,13 @@ public class UserController {
 
     private final UserService userService;
 
-    @PostMapping("/user")
+    @PostMapping("/api/auth/signup")
     @Operation(summary = "New user account creation", description = "all fields are mandatory")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "403", description = "Account with this name already exists (errorCode: 222)",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     public void addUser(@RequestBody @Valid UserDto userDto) {
