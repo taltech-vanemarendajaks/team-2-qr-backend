@@ -11,10 +11,6 @@ public class SupportRequestCreateRequest {
     @NotBlank(message = "Support token is required")
     private String supportToken;
 
-    @Size(max = 255, message = "Email must be at most 255 characters")
-    @Email(message = "Please enter a valid email address")
-    private String email;
-
     @NotBlank(message = "Message is required")
     @Size(max = 1000, message = "Message must be at most 1000 characters")
     private String message;

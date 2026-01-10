@@ -2,13 +2,13 @@ package ee.valiit.mystuffback.service;
 
 import ee.valiit.mystuffback.controller.support.dto.SupportRequestCreateRequest;
 import ee.valiit.mystuffback.controller.support.dto.SupportVerifyRequest;
-import ee.valiit.mystuffback.persistence.support.SupportRequest;
-import ee.valiit.mystuffback.persistence.support.SupportRequestRepository;
+import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.persistence.item.Item;
 import ee.valiit.mystuffback.persistence.item.ItemRepository;
+import ee.valiit.mystuffback.persistence.support.SupportRequest;
+import ee.valiit.mystuffback.persistence.support.SupportRequestRepository;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
-import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,38 +22,39 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SupportService {
 
     private static final int SUPPORT_TOKEN_TTL_SECONDS = 10 * 60; // 10 minutes
+    private static final String ACCESS_DENIED = "Access denied";
 
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
     private final SupportRequestRepository supportRequestRepository;
 
-
-    // in-memory token store (supportToken -> expiresAtEpochSeconds)
+    // In-memory token store: supportToken -> (username, expiresAtEpochSeconds)
     private record SupportTokenData(String username, long expiresAtEpochSeconds) {}
     private final Map<String, SupportTokenData> supportTokens = new ConcurrentHashMap<>();
 
-
     public String verifyOwnershipAndIssueToken(SupportVerifyRequest request) {
-        // 1) Honeypot check
-        if (request.getWebsite() != null && !request.getWebsite().isBlank()) {
-            // silent deny: look like success but don't issue usable token
-            throw new ForbiddenException("Access denied", 403);
-        }
+        denyIfHoneypotFilled(request.getWebsite());
 
-        String username = request.getUsername().trim();
-        String qrToken = request.getQrToken().trim();
+        String username = requireTrimmed(request.getUsername());
+        String email = requireTrimmed(request.getEmail());
+        String qrToken = requireTrimmed(request.getQrToken());
 
-        // 2) Find active user (case-sensitive username)
+        // 1) Find active user by username (case-sensitive username)
         User user = userRepository.findActiveUserByUsername(username)
-                .orElseThrow(() -> new ForbiddenException("Access denied", 403));
+                .orElseThrow(() -> forbidden());
+
+        // 2) Email must match the user's email in DB (case-insensitive)
+        if (user.getEmail() == null || !user.getEmail().trim().equalsIgnoreCase(email)) {
+            throw forbidden();
+        }
 
         // 3) Find active item by qrToken
         Item item = itemRepository.findActiveItemByQrToken(qrToken)
-                .orElseThrow(() -> new ForbiddenException("Access denied", 403));
+                .orElseThrow(() -> forbidden());
 
-        // 4) Ownership check
-        if (!item.getUser().getId().equals(user.getId())) {
-            throw new ForbiddenException("Access denied", 403);
+        // 4) Ownership check: item must belong to the user
+        if (item.getUser() == null || item.getUser().getId() == null || !item.getUser().getId().equals(user.getId())) {
+            throw forbidden();
         }
 
         // 5) Issue short-lived support token
@@ -64,53 +65,54 @@ public class SupportService {
         return supportToken;
     }
 
-    public void validateSupportTokenOrThrow(String supportToken) {
-        if (supportToken == null || supportToken.isBlank()) {
-            throw new ForbiddenException("Access denied", 403);
-        }
-
-        SupportTokenData data = supportTokens.get(supportToken);
-        long now = Instant.now().getEpochSecond();
-
-        if (data == null || data.expiresAtEpochSeconds() < now) {
-            supportTokens.remove(supportToken);
-            throw new ForbiddenException("Access denied", 403);
-        }
-    }
-
     public void createSupportRequest(SupportRequestCreateRequest request) {
+        denyIfHoneypotFilled(request.getWebsite());
 
-        if (request.getWebsite() != null && !request.getWebsite().isBlank()) {
-            throw new ForbiddenException("Access denied", 403);
-        }
+        String supportToken = requireTrimmed(request.getSupportToken());
+        String message = requireTrimmed(request.getMessage());
 
-        String supportToken = request.getSupportToken().trim();
-        validateSupportTokenOrThrow(supportToken);
-
-        String username = getUsernameFromSupportTokenOrThrow(supportToken);
+        String username = getValidUsernameFromTokenOrThrow(supportToken);
 
         User user = userRepository.findActiveUserByUsername(username)
-                .orElseThrow(() -> new ForbiddenException("Access denied", 403));
+                .orElseThrow(() -> forbidden());
 
         SupportRequest supportRequest = new SupportRequest();
         supportRequest.setUsername(user.getUsername());
-        supportRequest.setEmail(user.getEmail()); // force match to account email
-        supportRequest.setMessage(request.getMessage().trim());
+        supportRequest.setEmail(user.getEmail()); // locked to account email
+        supportRequest.setMessage(message);
         supportRequest.setStatus("NEW");
 
         supportRequestRepository.save(supportRequest);
+
+        // One-time use
         supportTokens.remove(supportToken);
     }
 
-    private String getUsernameFromSupportTokenOrThrow(String supportToken) {
+    private String getValidUsernameFromTokenOrThrow(String supportToken) {
         SupportTokenData data = supportTokens.get(supportToken);
         long now = Instant.now().getEpochSecond();
 
         if (data == null || data.expiresAtEpochSeconds() < now) {
             supportTokens.remove(supportToken);
-            throw new ForbiddenException("Access denied", 403);
+            throw forbidden();
         }
-
         return data.username();
+    }
+
+    private void denyIfHoneypotFilled(String website) {
+        if (website != null && !website.isBlank()) {
+            throw forbidden();
+        }
+    }
+
+    private String requireTrimmed(String value) {
+        if (value == null || value.isBlank()) {
+            throw forbidden();
+        }
+        return value.trim();
+    }
+
+    private ForbiddenException forbidden() {
+        return new ForbiddenException(ACCESS_DENIED, 403);
     }
 }
