@@ -26,7 +26,11 @@ public class QrCodeService {
     }
 
     private String constructImageQrLink(Item item) {
-
-        return serverAddress + itemPath + item.getId() + "&t=" + item.getQrToken();
+        String token = item.getQrToken();
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("QR token missing for itemId=" + item.getId());
+        }
+        return serverAddress + itemPath + item.getId() + "&t=" + token;
     }
+
 }

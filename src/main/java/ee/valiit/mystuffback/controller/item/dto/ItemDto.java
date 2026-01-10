@@ -35,5 +35,5 @@ public class ItemDto implements Serializable {
 
     private Integer imageId;
 
-
+    private String qrToken;
 }

@@ -24,6 +24,7 @@ public interface ItemMapper {
     @Mapping(source = "date", target = "itemDate")
     @Mapping(source = "model", target = "model")
     @Mapping(source = "comment", target = "comment")
+    @Mapping(source = "qrToken", target = "qrToken")
     @Mapping(constant = "", target = "imageData")
     @Mapping(target = "imageId", ignore = true)
     ItemDto toItemDto(Item item);
@@ -40,5 +41,6 @@ public interface ItemMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @InheritConfiguration(name = "toItem")
     @Mapping(ignore = true, target = "status")
+    @Mapping(ignore = true, target = "qrToken")
     Item updateItem(@MappingTarget Item item, ItemDto itemDto);
 }
