@@ -38,4 +38,5 @@ public class UserDto implements Serializable {
     // Honeypot: must stay empty
     private String website;
 
+    private String captchaToken;
 }

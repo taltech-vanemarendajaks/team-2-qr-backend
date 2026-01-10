@@ -2,6 +2,7 @@ package ee.valiit.mystuffback.controller.user;
 
 import ee.valiit.mystuffback.controller.user.dto.UserDto;
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
+import ee.valiit.mystuffback.service.CaptchaService;
 import ee.valiit.mystuffback.service.UserService;
 import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final CaptchaService captchaService;
 
     @PostMapping("/api/auth/signup")
     @Operation(summary = "New user account creation", description = "all fields are mandatory")
@@ -32,6 +34,10 @@ public class UserController {
         if (userDto.getWebsite() != null && !userDto.getWebsite().isBlank()) {
             throw new ForbiddenException("Access denied", 403);
         }
+        if (!captchaService.verify(userDto.getCaptchaToken())) {
+            throw new ForbiddenException("Access denied", 403);
+        }
+
         userService.addUser(userDto);
     }
 
