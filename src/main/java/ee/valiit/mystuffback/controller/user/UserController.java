@@ -3,6 +3,7 @@ package ee.valiit.mystuffback.controller.user;
 import ee.valiit.mystuffback.controller.user.dto.UserDto;
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
 import ee.valiit.mystuffback.service.UserService;
+import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +29,9 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     public void addUser(@RequestBody @Valid UserDto userDto) {
+        if (userDto.getWebsite() != null && !userDto.getWebsite().isBlank()) {
+            throw new ForbiddenException("Access denied", 403);
+        }
         userService.addUser(userDto);
     }
 

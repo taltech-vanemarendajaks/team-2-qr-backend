@@ -18,4 +18,8 @@ public class LoginRequest {
     @Size(max = 255, message = "Password must be at most 255 characters")
     @Schema(description = "User's password", example = "Secret123!")
     private String password;
+
+    // Honeypot: must stay empty
+    @Schema(description = "Honeypot field - must remain empty", example = "")
+    private String website;
 }

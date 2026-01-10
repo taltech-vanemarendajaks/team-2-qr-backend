@@ -3,6 +3,7 @@ package ee.valiit.mystuffback.controller.login;
 import ee.valiit.mystuffback.controller.login.dto.LoginRequest;
 import ee.valiit.mystuffback.controller.login.dto.LoginResponse;
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
+import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,6 +39,9 @@ public class LoginController {
                     content = @Content(schema = @Schema(implementation = ApiError.class))),
     })
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        if (request.getWebsite() != null && !request.getWebsite().isBlank()) {
+            throw new ForbiddenException("Access denied", 403);
+        }
         return loginService.login(request.getUsername(), request.getPassword());
     }
 }
