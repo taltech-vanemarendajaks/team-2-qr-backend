@@ -7,6 +7,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ee.valiit.mystuffback.infrastructure.exception.TooManyRequestsException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -41,4 +44,13 @@ public class GlobalExceptionHandler {
         apiError.setErrorCode(Error.VALIDATION_ERROR.getErrorCode());
         return apiError;
     }
+    @ExceptionHandler(TooManyRequestsException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public ApiError handleTooManyRequests(TooManyRequestsException ex) {
+        ApiError apiError = new ApiError();
+        apiError.setMessage(Error.RATE_LIMITED.getMessage());
+        apiError.setErrorCode(Error.RATE_LIMITED.getErrorCode());
+        return apiError;
+    }
+
 }
