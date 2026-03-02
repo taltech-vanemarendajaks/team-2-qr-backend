@@ -1,69 +1,74 @@
 -- Created by Redgate Data Modeler (https://datamodeler.redgate-platform.com)
--- Last modification date: 2025-11-28 09:16:31.572
+-- Patched for backend expectations: mystuff schema, image table, qr_token, and longer user fields.
+
+-- schema
+CREATE SCHEMA IF NOT EXISTS mystuff;
 
 -- tables
--- Table: itemImage
-CREATE TABLE itemImage (
-                       id serial  NOT NULL,
-                       item_id int  NOT NULL,
-                       image_data bytea  NOT NULL,
-                       CONSTRAINT image_pk PRIMARY KEY (id)
+-- Table: image  (backend expects mystuff.image)
+CREATE TABLE IF NOT EXISTS mystuff.image (
+  id serial NOT NULL,
+  item_id int NOT NULL,
+  image_data bytea NOT NULL,
+  CONSTRAINT image_pk PRIMARY KEY (id)
 );
 
 -- Table: item
-CREATE TABLE item (
-                      id serial  NOT NULL,
-                      user_id int  NOT NULL,
-                      name varchar(50)  NOT NULL,
-                      date date  NOT NULL,
-                      model varchar(250)  NULL,
-                      comment varchar(500)  NULL,
-                      status varchar(1)  NOT NULL,
-                      CONSTRAINT item_pk PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS mystuff.item (
+  id serial NOT NULL,
+  user_id int NOT NULL,
+  name varchar(50) NOT NULL,
+  date date NOT NULL,
+  model varchar(250) NULL,
+  comment varchar(500) NULL,
+  status varchar(1) NOT NULL,
+  qr_token varchar(255) NULL,
+  CONSTRAINT item_pk PRIMARY KEY (id)
 );
 
 -- Table: role
-CREATE TABLE role (
-                      id serial  NOT NULL,
-                      name varchar(20)  NOT NULL,
-                      CONSTRAINT role_pk PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS mystuff.role (
+  id serial NOT NULL,
+  name varchar(20) NOT NULL,
+  CONSTRAINT role_pk PRIMARY KEY (id)
 );
 
 -- Table: user
-CREATE TABLE "user" (
-                        id serial  NOT NULL,
-                        role_id int  NOT NULL,
-                        username varchar(50)  NOT NULL,
-                        password varchar(50)  NOT NULL,
-                        email varchar(50)  NOT NULL,
-                        status varchar(1)  NOT NULL,
-                        CONSTRAINT id PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS mystuff."user" (
+  id serial NOT NULL,
+  role_id int NOT NULL,
+  username varchar(255) NOT NULL,
+  password varchar(255) NOT NULL,
+  email varchar(255) NOT NULL,
+  status varchar(1) NOT NULL,
+  CONSTRAINT user_pk PRIMARY KEY (id)
 );
 
 -- foreign keys
 -- Reference: item_user (table: item)
-ALTER TABLE item ADD CONSTRAINT item_user
-    FOREIGN KEY (user_id)
-        REFERENCES "user" (id)
-        NOT DEFERRABLE
-            INITIALLY IMMEDIATE
-;
+ALTER TABLE mystuff.item
+  ADD CONSTRAINT item_user
+  FOREIGN KEY (user_id)
+  REFERENCES mystuff."user" (id)
+  NOT DEFERRABLE INITIALLY IMMEDIATE;
 
--- Reference: receipt_image_item (table: itemImage)
-ALTER TABLE itemImage ADD CONSTRAINT receipt_image_item
-    FOREIGN KEY (item_id)
-        REFERENCES item (id)
-        NOT DEFERRABLE
-            INITIALLY IMMEDIATE
-;
+-- Reference: image_item (table: image)
+ALTER TABLE mystuff.image
+  ADD CONSTRAINT image_item
+  FOREIGN KEY (item_id)
+  REFERENCES mystuff.item (id)
+  NOT DEFERRABLE INITIALLY IMMEDIATE;
 
 -- Reference: user_role (table: user)
-ALTER TABLE "user" ADD CONSTRAINT user_role
-    FOREIGN KEY (role_id)
-        REFERENCES role (id)
-        NOT DEFERRABLE
-            INITIALLY IMMEDIATE
-;
+ALTER TABLE mystuff."user"
+  ADD CONSTRAINT user_role
+  FOREIGN KEY (role_id)
+  REFERENCES mystuff.role (id)
+  NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+-- helpful indexes
+CREATE INDEX IF NOT EXISTS ix_item_user_id ON mystuff.item(user_id);
+CREATE INDEX IF NOT EXISTS ix_image_item_id ON mystuff.image(item_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_item_qr_token ON mystuff.item(qr_token);
 
 -- End of file.
-

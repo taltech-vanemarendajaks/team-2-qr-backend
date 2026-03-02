@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: team2-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: student123
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: eclipse-temurin:21-jdk
+    container_name: team2-backend
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+      - gradle-cache:/root/.gradle
+    environment:
+      # NB! konteineris DB host = postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_DRIVERCLASSNAME: org.postgresql.Driver
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: student123
+
+      SPRING_SQL_INIT_MODE: always
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+
+    command: ["./gradlew", "bootRun", "--no-daemon"]
+
+volumes:
+  pgdata:
+  gradle-cache:
