@@ -39,7 +39,7 @@ services:
       SPRING_SQL_INIT_MODE: always
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
 
-    command: ["./gradlew", "bootRun", "--no-daemon"]
+    command: ["sh", "-lc", "chmod +x ./gradlew && ./gradlew bootRun --no-daemon"]
 
 volumes:
   pgdata:
