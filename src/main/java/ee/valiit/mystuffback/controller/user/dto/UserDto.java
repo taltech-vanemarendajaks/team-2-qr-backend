@@ -34,9 +34,4 @@ public class UserDto implements Serializable {
     @Email(message = "Please enter a valid email address")
     @Size(message = "Email must be at most 254 characters", max = 254)
     private String email;
-
-    // Honeypot: must stay empty
-    private String website;
-
-    private String captchaToken;
 }

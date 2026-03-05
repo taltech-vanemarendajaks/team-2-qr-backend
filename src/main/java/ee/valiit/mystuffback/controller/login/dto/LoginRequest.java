@@ -1,5 +1,4 @@
 package ee.valiit.mystuffback.controller.login.dto;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -18,8 +17,4 @@ public class LoginRequest {
     @Size(max = 255, message = "Password must be at most 255 characters")
     @Schema(description = "User's password", example = "Secret123!")
     private String password;
-
-    // Honeypot: must stay empty
-    @Schema(description = "Honeypot field - must remain empty", example = "")
-    private String website;
 }

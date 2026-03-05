@@ -22,6 +22,4 @@ public class SupportVerifyRequest {
     @NotBlank(message = "QR token is required")
     private String qrToken;
 
-    // Honeypot: must stay empty
-    private String website;
 }
