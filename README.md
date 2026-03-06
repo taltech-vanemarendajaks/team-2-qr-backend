@@ -9,7 +9,6 @@ Backend REST API for MyStuffLabelled, a personal inventory system that enables u
 - User-specific data isolation
 
 ## Security
-- Honeypot protection
 - Request limiting
 - Input validation
 
