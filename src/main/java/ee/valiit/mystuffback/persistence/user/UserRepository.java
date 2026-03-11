@@ -11,12 +11,16 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("select u from User u where u.username = :username and u.status = 'A'")
     Optional<User> findActiveUserByUsername(@Param("username") String username);
 
+    @Query("select u from User u where u.email = :email and u.status = 'A'")
+    Optional<User> findActiveUserByEmail(@Param("email") String email);
+
+    @Query("select u from User u where u.googleId = :googleId")
+    Optional<User> findByGoogleId(@Param("googleId") String googleId);
+
     @Query("select (count(u) > 0) from User u where u.username = :username")
     boolean usernameExistsBy(@Param("username") String username);
 
     @Query("select (count(u) > 0) from User u where u.email = :email")
     boolean emailExistsBy(@Param("email") String email);
-
-
 
 }

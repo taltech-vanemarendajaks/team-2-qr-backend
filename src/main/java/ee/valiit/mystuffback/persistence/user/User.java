@@ -27,8 +27,7 @@ public class User {
     private String username;
 
 
-    @NotNull
-    @Column(name = "password", nullable = false, length = 255)
+    @Column(name = "password", length = 255)
     private String password;
 
     @NotNull
@@ -38,5 +37,8 @@ public class User {
     @NotNull
     @Column(name = "status", nullable = false, length = 1)
     private String status;
+
+    @Column(name = "google_uid", length = 255)
+    private String googleId;
 
 }
