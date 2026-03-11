@@ -1,6 +1,10 @@
 -- Created by Redgate Data Modeler (https://datamodeler.redgate-platform.com)
 -- Patched for backend expectations: mystuff schema, image table, qr_token, and longer user fields.
 
+-- extensions
+-- Needed for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- schema
 CREATE SCHEMA IF NOT EXISTS mystuff;
 
@@ -25,6 +29,30 @@ CREATE TABLE IF NOT EXISTS mystuff.item (
   qr_token varchar(255) NULL,
   CONSTRAINT item_pk PRIMARY KEY (id)
 );
+
+-- qr_token: generate automatically on insert
+ALTER TABLE mystuff.item
+  ALTER COLUMN qr_token SET DEFAULT gen_random_uuid()::text;
+
+-- Make qr_token mandatory (safe on fresh DB; also backfills existing rows if script re-run)
+DO $$
+BEGIN
+  UPDATE mystuff.item
+  SET qr_token = gen_random_uuid()::text
+  WHERE qr_token IS NULL OR qr_token = '';
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'mystuff'
+      AND table_name = 'item'
+      AND column_name = 'qr_token'
+      AND is_nullable = 'YES'
+  ) THEN
+    ALTER TABLE mystuff.item
+      ALTER COLUMN qr_token SET NOT NULL;
+  END IF;
+END $$;
 
 -- Table: role
 CREATE TABLE IF NOT EXISTS mystuff.role (

@@ -15,6 +15,4 @@ public class SupportRequestCreateRequest {
     @Size(max = 1000, message = "Message must be at most 1000 characters")
     private String message;
 
-    // Honeypot field - should remain empty
-    private String website;
 }

@@ -33,8 +33,6 @@ public class SupportService {
     private final Map<String, SupportTokenData> supportTokens = new ConcurrentHashMap<>();
 
     public String verifyOwnershipAndIssueToken(SupportVerifyRequest request) {
-        denyIfHoneypotFilled(request.getWebsite());
-
         String username = requireTrimmed(request.getUsername());
         String email = requireTrimmed(request.getEmail());
         String qrToken = requireTrimmed(request.getQrToken());
@@ -66,7 +64,7 @@ public class SupportService {
     }
 
     public void createSupportRequest(SupportRequestCreateRequest request) {
-        denyIfHoneypotFilled(request.getWebsite());
+
 
         String supportToken = requireTrimmed(request.getSupportToken());
         String message = requireTrimmed(request.getMessage());
@@ -97,12 +95,6 @@ public class SupportService {
             throw forbidden();
         }
         return data.username();
-    }
-
-    private void denyIfHoneypotFilled(String website) {
-        if (website != null && !website.isBlank()) {
-            throw forbidden();
-        }
     }
 
     private String requireTrimmed(String value) {
