@@ -14,6 +14,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Run tests
 ./gradlew test
 
+# Run a single test class
+./gradlew test --tests "ee.valiit.mystuffback.MystuffbackApplicationTests"
+
 # Run with Docker (recommended — starts PostgreSQL + backend)
 docker compose up -d
 docker logs -f team2-backend
@@ -58,12 +61,10 @@ Default credentials (local/Docker): `postgres` / `student123`, database `postgre
 ### Security
 
 - No Spring Security filter chain — auth is manual (BCrypt via `PasswordConfig` bean, no JWT/sessions).
-- Honeypot field (`website`) checked in login and support endpoints; filled → 403.
-- CORS allows `http://localhost:8081` and `http://localhost:8082`.
+- CORS allows `http://localhost:8081` and `http://localhost:8082` for routes under `/api/**`.
 
 ### Configuration
 
 Key `application.properties` values:
-- `qr.code.path=/item?itemId=` — base URL fragment for QR codes
-- `captcha.secret` — hCaptcha secret for signup
-- `server.address` — set to frontend origin for QR URL construction
+- `mystuff.item.path=/item?itemId=` — base URL fragment for QR codes
+- `mystuff.server.address` — set to frontend origin for QR URL construction

@@ -10,8 +10,6 @@
 7. [Roadmap & Team Tasks](#7-roadmap--team-tasks)
 8. [Development Guidelines](#8-development-guidelines)
 
----
-
 ## 1. Project Overview
 
 **MyStuffLabelled** is a personal inventory management system. Users register their belongings — appliances, electronics, tools — with metadata like purchase date, model number, warranty notes, and receipt photos. Each item gets a unique QR code. Scanning the QR code shows the item's details.
@@ -29,6 +27,8 @@
 | Frontend | https://github.com/taltech-vanemarendajaks/team-2-qr-front |
 
 ### Tech Stack
+
+**Backend**
 | Layer | Technology |
 |-------|------------|
 | Language | Java 21 |
@@ -41,49 +41,32 @@
 | Password hashing | Spring Security Crypto (BCrypt) |
 | Containerisation | Docker / Docker Compose |
 
----
+**Frontend**
+| Layer | Technology |
+|-------|------------|
+| Framework | Vue.js 3.2.13 |
+| Build tool | Vue CLI 5.0.0 |
+| Language | JavaScript (ES6+) |
+| Routing | Vue Router 4 |
+| HTTP client | Axios 1.7.9 |
+| UI framework | Bootstrap 5.3.3 |
+| Icons | Font Awesome 6.7.2 |
+| QR code rendering | qrcode.vue 3.6.0 |
+| Auth | Google Sign-In SDK (OAuth 2.0) |
 
 ## 2. Architecture
 
-### Layer Overview
+### System Overview
 
 ```
-Request
-  └── Controller (REST, input validation)
-        └── Service (business logic)
-              └── Repository (JPA, PostgreSQL)
+Browser (Vue.js SPA)
+  └── HTTP / Axios (localhost:8081 dev → proxied to localhost:8080)
+        └── Controller (REST, input validation)
+              └── Service (business logic)
+                    └── Repository (JPA, PostgreSQL)
 ```
 
-### Package Structure
-
-```
-src/main/java/ee/valiit/mystuffback/
-├── controller/          REST endpoints + DTOs
-│   ├── item/
-│   ├── login/
-│   ├── qrcode/
-│   ├── support/
-│   └── user/
-├── service/             Business logic
-├── persistence/         JPA entities + repositories + mappers
-│   ├── item/
-│   ├── itemimage/
-│   ├── role/
-│   ├── support/
-│   └── user/
-└── infrastructure/      Cross-cutting concerns
-    ├── config/          (PasswordConfig, CorsConfig)
-    ├── error/           (GlobalExceptionHandler, error codes)
-    ├── exception/       (custom exceptions)
-    └── util/
-```
-
-### CORS
-Allowed origins: `http://localhost:8081`, `http://localhost:8082`
-Allowed methods: GET, POST, PUT, DELETE, OPTIONS
-Credentials: allowed
-
----
+The frontend is a single-page application served separately from the backend. During development, Vue CLI's dev server runs on port **8081** and proxies all API requests to the backend on port **8080**.
 
 ## 3. Database Schema
 
@@ -105,57 +88,46 @@ role ──< user ──< item ──< image
 ### Tables
 
 #### `mystuff.role`
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | serial | PK | |
-| name | varchar(20) | NOT NULL | `'admin'` or `'customer'` |
+| Column | Constraints | Notes |
+|--------|-------------|-------|
+| id | PK | |
+| name | NOT NULL | `'admin'` or `'customer'` |
 
 #### `mystuff.user`
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | serial | PK | |
-| role_id | int | FK → role.id | |
-| username | varchar(255) | NOT NULL | |
-| password | varchar(255) | NOT NULL | BCrypt hash |
-| email | varchar(255) | NOT NULL | |
-| status | varchar(1) | NOT NULL | `'A'` = active |
+| Column | Constraints | Notes |
+|--------|-------------|-------|
+| id | PK | |
+| role_id | FK → role.id | |
+| username | NOT NULL | |
+| password | NOT NULL | BCrypt hash |
+| email | NOT NULL | |
+| status | NOT NULL | `'A'` = active |
 
 #### `mystuff.item`
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | serial | PK | |
-| user_id | int | FK → user.id, NOT NULL | |
-| name | varchar(50) | NOT NULL | |
-| date | date | NOT NULL | Purchase/acquisition date |
-| model | varchar(250) | NULL | Optional model number |
-| comment | varchar(500) | NULL | Notes, warranty info, etc. |
-| status | varchar(1) | NOT NULL | `'A'` = active, `'D'` = deleted |
-| qr_token | varchar(255) | NULL, UNIQUE | UUID assigned when QR is generated |
+| Column | Constraints | Notes |
+|--------|-------------|-------|
+| id | PK | |
+| user_id | FK → user.id, NOT NULL | |
+| name | NOT NULL | |
+| date | NOT NULL | Purchase/acquisition date |
+| model | NULL | Optional model number |
+| comment | NULL | Notes, warranty info, etc. |
+| status | NOT NULL | `'A'` = active, `'D'` = deleted |
+| qr_token | NULL, UNIQUE | UUID assigned when QR is generated |
 
 #### `mystuff.image`
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | serial | PK | |
-| item_id | int | FK → item.id, NOT NULL | |
-| image_data | bytea | NOT NULL | Receipt or item photo (binary) |
-
-### Indexes
-| Index | Table | Column | Type |
-|-------|-------|--------|------|
-| ix_item_user_id | item | user_id | Regular |
-| ix_image_item_id | image | item_id | Regular |
-| ux_item_qr_token | item | qr_token | Unique |
+| Column | Constraints | Notes |
+|--------|-------------|-------|
+| id | PK | |
+| item_id | FK → item.id, NOT NULL | |
+| image_data | NOT NULL | Receipt or item photo (binary) |
 
 ### Soft Delete
-Items are never hard-deleted. Setting `status = 'D'` hides the item from all queries. This preserves historical data and supports potential future audit/restore features.
-
----
+Items are never hard-deleted. Setting `status = 'D'` hides the item from all queries.
 
 ## 4. API Reference
 
 Interactive docs available at: `http://localhost:8080/swagger-ui.html`
-
----
 
 ### Authentication
 
@@ -169,22 +141,17 @@ Register a new user account.
 {
   "username": "string",
   "password": "string",
-  "email": "string",
-  "captchaToken": "string",
-  "website": ""
+  "email": "string"
 }
 ```
-> `website` is a honeypot field — must be empty. Do not display it in the UI.
 
 **Responses:**
 | Status | Meaning |
 |--------|---------|
 | 200 | Account created |
-| 400 | Validation error or CAPTCHA failed |
+| 400 | Validation error |
 | 409 | Username already taken (error code 222) |
 | 429 | Too many requests |
-
----
 
 #### `POST /api/auth/login`
 Authenticate and receive user identity.
@@ -194,9 +161,8 @@ Authenticate and receive user identity.
 **Request body:**
 ```json
 {
-  "username": "string",
-  "password": "string",
-  "website": ""
+  "email": "string",
+  "password": "string"
 }
 ```
 
@@ -204,7 +170,8 @@ Authenticate and receive user identity.
 ```json
 {
   "userId": 1,
-  "roleName": "customer"
+  "roleName": "customer",
+  "username": "string"
 }
 ```
 
@@ -215,7 +182,30 @@ Authenticate and receive user identity.
 | 403 | Wrong credentials (error code 111) |
 | 429 | Too many requests |
 
----
+#### `POST /api/auth/google`
+Authenticate via Google OAuth. Receives a Google ID token and returns user identity.
+
+**Request body:**
+```json
+{
+  "idToken": "string"
+}
+```
+
+**Response (200):**
+```json
+{
+  "userId": 1,
+  "roleName": "customer",
+  "username": "string"
+}
+```
+
+**Responses:**
+| Status | Meaning |
+|--------|---------|
+| 200 | Login successful |
+| 403 | Invalid Google token |
 
 ### Items
 
@@ -241,45 +231,15 @@ Create a new item.
 | 200 | Item created |
 | 409 | Item name already exists for this user (error code 333) |
 
----
-
 #### `GET /items`
 Get all active items for a user.
 
 **Query params:** `userId` (required)
 
-**Response (200):**
-```json
-[
-  {
-    "itemId": 1,
-    "itemName": "Washing Machine",
-    "date": "2022-05-10"
-  }
-]
-```
-
----
-
 #### `GET /item`
 Get full details of a single item, including images.
 
 **Query params:** `itemId` (required)
-
-**Response (200):**
-```json
-{
-  "itemId": 1,
-  "itemName": "Washing Machine",
-  "date": "2022-05-10",
-  "model": "Bosch WAX28EH0",
-  "comment": "5-year warranty, receipt attached",
-  "imageData": "base64-encoded-string",
-  "status": "A"
-}
-```
-
----
 
 #### `PUT /item`
 Update an item's details.
@@ -294,26 +254,20 @@ Update an item's details.
 | 200 | Updated |
 | 404 | Item not found |
 
----
-
 #### `DELETE /item`
 Soft-delete an item (sets `status = 'D'`).
 
 **Query params:** `itemId` (required)
-
----
 
 #### `DELETE /{itemId}/images/{imageId}`
 Remove a specific image from an item.
 
 **Path params:** `itemId`, `imageId`
 
----
-
 ### QR Codes
 
 #### `GET /qr-code`
-Get the QR code URL for an item. Assigns a `qr_token` to the item if it doesn't have one yet.
+Get the QR code URL for an item. Assigns a `qr_token` if one doesn't exist yet.
 
 **Query params:** `itemId` (required)
 
@@ -324,16 +278,16 @@ Get the QR code URL for an item. Assigns a `qr_token` to the item if it doesn't 
 }
 ```
 
----
-
 ### Support
 
 #### `POST /api/support/verify-qr`
-Verify that the caller owns the item referenced by a QR token. Issues a short-lived support token.
+Verify QR ownership and receive a short-lived support token.
 
 **Request body:**
 ```json
 {
+  "username": "string",
+  "email": "user@example.com",
   "qrToken": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
@@ -346,10 +300,8 @@ Verify that the caller owns the item referenced by a QR token. Issues a short-li
 }
 ```
 
----
-
 #### `POST /api/support/request`
-Submit a support request to the admin. Requires a valid support token from `/verify-qr`.
+Submit a support request. Requires a valid token from `/verify-qr`.
 
 **Request body:**
 ```json
@@ -367,17 +319,7 @@ Submit a support request to the admin. Requires a valid support token from `/ver
 
 > Support tokens are valid for **10 minutes** and are **single-use**.
 
----
-
-### Error Response Format
-
-All errors follow this structure:
-```json
-{
-  "message": "Human-readable description",
-  "errorCode": 111
-}
-```
+### Error Codes
 
 | Error Code | Meaning |
 |------------|---------|
@@ -385,12 +327,10 @@ All errors follow this structure:
 | 222 | Username already taken |
 | 333 | Item name already exists for this user |
 
----
-
 ## 5. Security
 
 ### Password Hashing
-All passwords are stored as BCrypt hashes. Accounts with legacy plaintext passwords are automatically re-hashed to BCrypt on successful login.
+All passwords are stored as BCrypt hashes. Legacy plaintext passwords are automatically re-hashed on first login.
 
 ### Rate Limiting
 In-memory sliding window limiter, keyed by `endpoint + client IP`.
@@ -402,12 +342,6 @@ In-memory sliding window limiter, keyed by `endpoint + client IP`.
 
 Returns `HTTP 429 Too Many Requests` when exceeded.
 
-### Honeypot
-Login, signup, and support endpoints include an optional `website` field. Any non-empty value causes the request to be rejected silently. This field must never be shown in the UI.
-
-### CAPTCHA
-Signup requires a valid hCaptcha token (`captchaToken`). The backend verifies it server-side before creating the account.
-
 ### Support Token
 A support request requires two steps:
 1. Verify QR ownership → receive a time-limited token
@@ -415,7 +349,8 @@ A support request requires two steps:
 
 Prevents spam and unauthorised support requests.
 
----
+### Frontend Login Lockout
+The frontend tracks failed login attempts per email in `localStorage`. After **3 consecutive failures**, a 30-second cooldown is enforced client-side and a support/unlock form is shown. The user can scan their QR code to submit a support request for account help.
 
 ## 6. Development Setup
 
@@ -457,57 +392,51 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 | hanna | 123 | customer |
 | katha | 123 | customer |
 
----
+### Frontend Setup
+
+**Prerequisites:** Node.js (LTS recommended), npm
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server (http://localhost:8081)
+npm run serve
+
+# Build for production
+npm run build
+```
+
+The dev server proxies all API requests to `http://localhost:8080` (configured in `vue.config.js`), so the backend must be running before using the frontend.
+
+**Frontend available at:** `http://localhost:8081`
+
+#### Google OAuth
+The frontend uses Google Sign-In. The Google Client ID is configured in `src/views/LoginView.vue`.
+
+#### Session Storage
+After login, the frontend stores `userId`, `roleName`, and `username` in `sessionStorage`. These are cleared on logout.
 
 ## 7. Roadmap & Team Tasks
 
-### Current Sprint — Developer Task Assignments
-
-| Developer | Task |
-|-----------|------|
-| Kerly | Login redesign / authentication rework |
-| Kristjan | Server deployment (TalTech) |
-| Katharina | Frontend migration Vue → Angular + CSS |
-| Raido | APIs, database changes, admin view |
-
-### Full Backlog
-
-| # | Feature | Notes |
-|---|---------|-------|
-| 1 | **Login redesign** | Rework authentication flow |
-| 2 | **Google OAuth** | Allow sign-in with Google account |
-| 3 | **Flutter mobile app** | Native mobile client |
-| 4 | **Push notifications** | Notify users of important events |
-| 5 | **Warranty expiry emails** | Cron job — email when warranty is about to expire or has expired |
-| 6 | **Family & Friends sharing** | Share item access with other users |
-| 7 | **Frontend: Vue → Angular** | Migrate the frontend framework |
-| 8 | **Admin panel** | Dashboard for admin users to manage accounts and requests |
-| 9 | **New frontend design** | UI redesign |
-| 10 | **Deploy to TalTech server** | Production deployment |
-| 11 | **Testing** | Unit and integration tests |
-
----
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| 1 | **Login redesign** | Done | Switched to email-based login |
+| 2 | **Google OAuth** | Done | `POST /api/auth/google` with Google ID token |
+| 3 | **Push notifications** | Planned | Notify users of important events |
+| 4 | **Warranty expiry emails** | Planned | Cron job — email when warranty is about to expire or has expired |
+| 5 | **Family & Friends sharing** | Planned | Share item access with other users |
+| 6 | **Admin panel** | Planned | Dashboard for admin users to manage accounts and requests |
+| 7 | **New frontend design** | Planned | UI redesign |
+| 8 | **Deploy to TalTech server** | Planned | Production deployment |
+| 9 | **Testing** | Planned | Unit and integration tests |
 
 ## 8. Development Guidelines
 
-Based on the team's agreed principles:
-
 ### API-First
-Design your endpoints **before** writing service or repository code. Use OpenAPI/Swagger annotations to define the contract. The frontend team depends on it.
-
-### Document Before You Code
-Write or update this documentation when you add or change an endpoint, table, or feature. Documentation is a deliverable, not an afterthought.
-
-### Database Design First
-Draw the ER diagram and agree on the schema **before** writing any Java code. Mistakes in the schema are expensive to fix later. Every relationship has a pattern:
-- **1:1** — use a foreign key on either side
-- **1:N** — foreign key on the "many" side
-- **M:N** — use a join/bridge table
-
-Normalise to **3NF** as a baseline. Avoid storing derived or redundant data.
-
-### OpenAPI = Team Contract
-The Swagger UI at `/swagger-ui.html` is the live contract between backend and frontend. Keep it up to date. Frontend devs should not need to read Java code to understand the API.
+- Design endpoints before writing service or repository code
+- Use OpenAPI/Swagger annotations to define the contract
+- The Swagger UI at `/swagger-ui.html` is the live contract between backend and frontend
 
 ### Code Conventions
 - Controllers: thin — only handle HTTP concerns and call services
