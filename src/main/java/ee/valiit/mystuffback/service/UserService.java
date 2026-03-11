@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.EMAIL_UNAVAILABLE;
 import static ee.valiit.mystuffback.infrastructure.error.Error.USERNAME_UNAVAILABLE;
+import static ee.valiit.mystuffback.infrastructure.status.Status.ACTIVE;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(role);
+        user.setStatus(ACTIVE.getCode());
 
         userRepository.save(user);
     }

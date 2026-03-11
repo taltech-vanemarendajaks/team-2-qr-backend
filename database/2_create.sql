@@ -38,10 +38,13 @@ CREATE TABLE IF NOT EXISTS mystuff."user" (
   id serial NOT NULL,
   role_id int NOT NULL,
   username varchar(255) NOT NULL,
-  password varchar(255) NOT NULL,
+  password varchar(255) NULL,
   email varchar(255) NOT NULL,
   status varchar(1) NOT NULL,
-  CONSTRAINT user_pk PRIMARY KEY (id)
+  google_uid varchar(255) NULL,
+  CONSTRAINT user_pk PRIMARY KEY (id),
+  CONSTRAINT ux_user_email UNIQUE (email),
+  CONSTRAINT ux_user_google_uid UNIQUE (google_uid)
 );
 
 -- foreign keys
