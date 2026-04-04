@@ -31,7 +31,7 @@ public class LoginService {
     @Transactional
     public User googleLogin(GoogleAuthService.GoogleUserInfo userInfo) {
         // 1. Look up by googleId
-        User user = userRepository.findByGoogleId(userInfo.googleId()).orElse(null);
+        User user = userRepository.findActiveUserByGoogleId(userInfo.googleId()).orElse(null);
 
         if (user == null) {
             // 2. Look up by email — link googleId if found
@@ -48,8 +48,8 @@ public class LoginService {
             user = new User();
             user.setGoogleId(userInfo.googleId());
             user.setEmail(userInfo.email());
-            user.setUsername(deriveUsername(userInfo.name()));
-            user.setPassword(null);
+            user.setUsername(deriveUniqueUsername(userInfo.name(), userInfo.email()));
+            user.setPassword(passwordEncoder.encode("GOOGLE_AUTH_ONLY_" + userInfo.googleId()));
             user.setStatus(ACTIVE.getCode());
             user.setRole(role);
             userRepository.save(user);
@@ -58,10 +58,41 @@ public class LoginService {
         return user;
     }
 
-    private String deriveUsername(String name) {
-        if (name == null || name.isBlank()) return "user";
-        String firstName = name.trim().split("\\s+")[0];
-        return firstName.length() > 50 ? firstName.substring(0, 50) : firstName;
+    private String deriveUniqueUsername(String name, String email) {
+        String base;
+
+        if (name != null && !name.isBlank()) {
+            base = name.trim().split("\\s+")[0];
+        } else if (email != null && !email.isBlank()) {
+            base = email.split("@")[0];
+        } else {
+            base = "user";
+        }
+
+        base = base.trim();
+        if (base.isBlank()) {
+            base = "user";
+        }
+
+        if (base.length() > 50) {
+            base = base.substring(0, 50);
+        }
+
+        String candidate = base;
+        int counter = 1;
+
+        while (userRepository.usernameExistsBy(candidate)) {
+            String suffix = String.valueOf(counter);
+            int maxBaseLength = 50 - suffix.length();
+            String shortenedBase = base.length() > maxBaseLength
+                    ? base.substring(0, maxBaseLength)
+                    : base;
+
+            candidate = shortenedBase + suffix;
+            counter++;
+        }
+
+        return candidate;
     }
 
     private User getValidActiveUser(String email, String password) {
