@@ -20,7 +20,7 @@ services:
       retries: 20
 
   backend:
-    image: eclipse-temurin:21-jdk
+    image: eclipse-temurin:25-jdk
     container_name: team2-backend
     working_dir: /app
     env_file:
