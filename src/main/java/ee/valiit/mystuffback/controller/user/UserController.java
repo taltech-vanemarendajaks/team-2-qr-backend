@@ -29,7 +29,7 @@ public class UserController {
     @Operation(summary = "New user account creation", description = "all fields are mandatory")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OK"),
-            @ApiResponse(responseCode = "403", description = "Account with this name already exists (errorCode: 222)",
+            @ApiResponse(responseCode = "403", description = "This email already exists(errorCode: 223)",
                     content = @Content(schema = @Schema(implementation = ApiError.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(schema = @Schema(implementation = ApiError.class)))

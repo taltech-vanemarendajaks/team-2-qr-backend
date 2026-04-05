@@ -2,7 +2,6 @@ package ee.valiit.mystuffback.service;
 
 import ee.valiit.mystuffback.controller.item.dto.ItemBasicInfo;
 import ee.valiit.mystuffback.controller.item.dto.ItemDto;
-import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.infrastructure.exception.PrimaryKeyNotFoundException;
 import ee.valiit.mystuffback.infrastructure.status.Status;
 import ee.valiit.mystuffback.infrastructure.util.BytesConverter;
@@ -21,8 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static ee.valiit.mystuffback.infrastructure.error.Error.ITEM_NAME_UNAVAILABLE;
-
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -34,9 +31,8 @@ public class ItemService {
 
 
     @Transactional
-    public void addItem(Integer userId, ItemDto itemDto) {
-        validateItemNameIsAvailable(itemDto.getItemName());
-        User user = userService.getValidUser(userId);
+    public void addItem(ItemDto itemDto) {
+        User user = userService.getAuthenticatedUser();
         Item item = itemMapper.toItem(itemDto);
         item.setUser(user);
         item.setQrToken(UUID.randomUUID().toString().replace("-", ""));
@@ -66,31 +62,28 @@ public class ItemService {
         return itemImage;
     }
 
-    private void validateItemNameIsAvailable(String itemName) {
-        boolean itemExists = itemRepository.itemExistsBy(itemName);
-        if (itemExists) {
-            throw new ForbiddenException(ITEM_NAME_UNAVAILABLE.getMessage(), ITEM_NAME_UNAVAILABLE.getErrorCode());
-        }
-    }
-
-    public List<ItemBasicInfo> findItems(Integer userId) {
-        List<Item> items = itemRepository.findActiveItemsBy(userId);
+    public List<ItemBasicInfo> findItems() {
+        User user = userService.getAuthenticatedUser();
+        List<Item> items = itemRepository.findActiveItemsByUserId(user.getId());
         return itemMapper.toItemBasicInfos(items);
     }
 
     public ItemDto findItem(Integer itemId) {
-        Item item = getValidItem(itemId);
+        Item item = getValidUserItem(itemId);
         ItemDto itemDto = itemMapper.toItemDto(item);
         handleAddImageDataToItemDto(itemId, itemDto);
         return itemDto;
     }
+    private Item getValidUserItem(Integer itemId) {
+        User user = userService.getAuthenticatedUser();
+
+        return itemRepository.findActiveItemByIdAndUserId(itemId, user.getId())
+                .orElseThrow(() -> new PrimaryKeyNotFoundException("itemId", itemId));
+    }
 
     private void handleAddImageDataToItemDto(Integer itemId, ItemDto itemDto) {
         Optional<ItemImage> optionalItemImage = itemImageRepository.findItemImageBy(itemId);
-        if (optionalItemImage.isPresent()) {
-            ItemImage itemImage = optionalItemImage.get();
-            addImageDataToItemDto(itemImage, itemDto);
-        }
+        optionalItemImage.ifPresent(itemImage -> addImageDataToItemDto(itemImage, itemDto));
     }
 
     private void addImageDataToItemDto(ItemImage itemImage, ItemDto itemDto) {
@@ -100,17 +93,11 @@ public class ItemService {
     }
 
 
-    public Item getValidItem(Integer itemId) {
-        return itemRepository.findById(itemId)
-                .orElseThrow(() -> new PrimaryKeyNotFoundException("itemId", itemId));
-    }
-
-    public Item updateItemInfo(Integer itemId, ItemDto itemDto) {
-        Item item = getValidItem(itemId);
+    public void updateItemInfo(Integer itemId, ItemDto itemDto) {
+        Item item = getValidUserItem(itemId);
         updateItemImage(itemDto, item);
         itemMapper.updateItem(item, itemDto);
         itemRepository.save(item);
-        return item;
     }
 
     private void updateItemImage(ItemDto itemDto, Item item) {
@@ -119,15 +106,15 @@ public class ItemService {
     }
 
     public void removeItem(Integer itemId) {
-        Item item = getValidItem(itemId);
+        Item item = getValidUserItem(itemId);
         itemImageRepository.deleteItemImagesBy(item);
         item.setStatus(Status.SOFT_DELETED.getCode());
         itemRepository.save(item);
     }
 
     public void removeItemImage(Integer itemId, Integer imageId) {
-        Item item = getValidItem(itemId);
-        ItemImage image =itemImageRepository.findById(imageId)
+        getValidUserItem(itemId);
+        ItemImage image = itemImageRepository.findById(imageId)
                 .orElseThrow(() -> new PrimaryKeyNotFoundException("imageId", imageId));
         if (!image.getItem().getId().equals(itemId)) {
             throw new IllegalArgumentException("Image does not belong to this item");

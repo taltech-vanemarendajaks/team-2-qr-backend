@@ -29,7 +29,7 @@ public class SupportService {
     private final SupportRequestRepository supportRequestRepository;
 
     // In-memory token store: supportToken -> (username, expiresAtEpochSeconds)
-    private record SupportTokenData(String username, long expiresAtEpochSeconds) {}
+    private record SupportTokenData(String email, long expiresAtEpochSeconds) {}
     private final Map<String, SupportTokenData> supportTokens = new ConcurrentHashMap<>();
 
     public String verifyOwnershipAndIssueToken(SupportVerifyRequest request) {
@@ -38,27 +38,22 @@ public class SupportService {
         String qrToken = requireTrimmed(request.getQrToken());
 
         // 1) Find active user by username (case-sensitive username)
-        User user = userRepository.findActiveUserByUsername(username)
+        User user = userRepository.findActiveUserByEmail(email)
                 .orElseThrow(() -> forbidden());
 
-        // 2) Email must match the user's email in DB (case-insensitive)
-        if (user.getEmail() == null || !user.getEmail().trim().equalsIgnoreCase(email)) {
-            throw forbidden();
-        }
-
-        // 3) Find active item by qrToken
+        // 2) Find active item by qrToken
         Item item = itemRepository.findActiveItemByQrToken(qrToken)
                 .orElseThrow(() -> forbidden());
 
-        // 4) Ownership check: item must belong to the user
+        // 3) Ownership check: item must belong to the user
         if (item.getUser() == null || item.getUser().getId() == null || !item.getUser().getId().equals(user.getId())) {
             throw forbidden();
         }
 
-        // 5) Issue short-lived support token
+        // 4) Issue short-lived support token
         String supportToken = UUID.randomUUID().toString().replace("-", "");
         long expiresAt = Instant.now().getEpochSecond() + SUPPORT_TOKEN_TTL_SECONDS;
-        supportTokens.put(supportToken, new SupportTokenData(user.getUsername(), expiresAt));
+        supportTokens.put(supportToken, new SupportTokenData(user.getEmail(), expiresAt));
 
         return supportToken;
     }
@@ -69,9 +64,9 @@ public class SupportService {
         String supportToken = requireTrimmed(request.getSupportToken());
         String message = requireTrimmed(request.getMessage());
 
-        String username = getValidUsernameFromTokenOrThrow(supportToken);
+        String email = getValidEmailFromTokenOrThrow(supportToken);
 
-        User user = userRepository.findActiveUserByUsername(username)
+        User user = userRepository.findActiveUserByEmail(email)
                 .orElseThrow(() -> forbidden());
 
         SupportRequest supportRequest = new SupportRequest();
@@ -86,7 +81,7 @@ public class SupportService {
         supportTokens.remove(supportToken);
     }
 
-    private String getValidUsernameFromTokenOrThrow(String supportToken) {
+    private String getValidEmailFromTokenOrThrow(String supportToken) {
         SupportTokenData data = supportTokens.get(supportToken);
         long now = Instant.now().getEpochSecond();
 
@@ -94,7 +89,7 @@ public class SupportService {
             supportTokens.remove(supportToken);
             throw forbidden();
         }
-        return data.username();
+        return data.email();
     }
 
     private String requireTrimmed(String value) {
