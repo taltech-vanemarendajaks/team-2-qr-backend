@@ -1,12 +1,9 @@
 package ee.valiit.mystuffback.service;
 
-
-import ee.valiit.mystuffback.controller.login.dto.LoginResponse;
 import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.persistence.role.Role;
 import ee.valiit.mystuffback.persistence.role.RoleRepository;
 import ee.valiit.mystuffback.persistence.user.User;
-import ee.valiit.mystuffback.persistence.user.UserMapper;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,17 +19,17 @@ import static ee.valiit.mystuffback.infrastructure.status.Status.ACTIVE;
 @RequiredArgsConstructor
 public class LoginService {
     private final UserRepository userRepository;
-    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
 
-    public LoginResponse login(String email, String password) {
+    public User login(String email, String password) {
         User user = getValidActiveUser(email.trim(), password);
-        return userMapper.toLoginResponse(user);
+        user.getRole().getName();
+        return user;
     }
 
     @Transactional
-    public LoginResponse googleLogin(GoogleAuthService.GoogleUserInfo userInfo) {
+    public User googleLogin(GoogleAuthService.GoogleUserInfo userInfo) {
         // 1. Look up by googleId
         User user = userRepository.findByGoogleId(userInfo.googleId()).orElse(null);
 
@@ -57,8 +54,8 @@ public class LoginService {
             user.setRole(role);
             userRepository.save(user);
         }
-
-        return userMapper.toLoginResponse(user);
+        user.getRole().getName();
+        return user;
     }
 
     private String deriveUsername(String name) {

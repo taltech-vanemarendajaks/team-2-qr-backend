@@ -39,4 +39,5 @@ public class UserController {
         rateLimitService.checkRateLimitOrThrow("signup", getClientIp(httpRequest), 5, 60);
         userService.addUser(userDto);
     }
+
 }
