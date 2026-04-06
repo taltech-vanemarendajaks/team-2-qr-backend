@@ -9,11 +9,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ee.valiit.mystuffback.infrastructure.exception.TooManyRequestsException;
+import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleValidation(MethodArgumentNotValidException ex) {
@@ -28,6 +28,15 @@ public class GlobalExceptionHandler {
         ApiError apiError = new ApiError();
         apiError.setMessage(message);
         apiError.setErrorCode(Error.VALIDATION_ERROR.getErrorCode());
+        return apiError;
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handleForbidden(ForbiddenException ex) {
+        ApiError apiError = new ApiError();
+        apiError.setMessage(ex.getMessage());
+        apiError.setErrorCode(ex.getErrorCode());
         return apiError;
     }
 
