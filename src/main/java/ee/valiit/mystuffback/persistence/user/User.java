@@ -3,7 +3,6 @@ package ee.valiit.mystuffback.persistence.user;
 import ee.valiit.mystuffback.persistence.role.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,14 +30,14 @@ public class User {
     private String password;
 
     @NotNull
-    @Column(name = "email", nullable = false, length = 255)
+    @Column(name = "email", nullable = false, length = 255, unique = true)
     private String email;
 
     @NotNull
     @Column(name = "status", nullable = false, length = 1)
     private String status;
 
-    @Column(name = "google_uid", length = 255)
+    @Column(name = "google_uid", length = 255, unique = true)
     private String googleId;
 
 }

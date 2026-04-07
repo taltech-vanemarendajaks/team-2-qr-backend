@@ -13,9 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.EMAIL_UNAVAILABLE;
-import static ee.valiit.mystuffback.infrastructure.error.Error.USERNAME_UNAVAILABLE;
 import static ee.valiit.mystuffback.infrastructure.status.Status.ACTIVE;
 
 @Service
@@ -34,7 +35,6 @@ public class UserService {
         String username = userDto.getUsername().trim();
         String email = userDto.getEmail().trim();
 
-        validateUserNameIsAvailable(username);
         validateEmailIsAvailable(email);
 
         Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME);
@@ -54,15 +54,18 @@ public class UserService {
                 .orElseThrow(() -> new PrimaryKeyNotFoundException("userId", userId));
     }
 
-    private void validateUserNameIsAvailable(String username) {
-        boolean usernameExists = userRepository.usernameExistsBy(username);
-        if (usernameExists) {
-            throw new ForbiddenException(USERNAME_UNAVAILABLE.getMessage(), USERNAME_UNAVAILABLE.getErrorCode());
+    public User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            throw new ForbiddenException("Not authenticated", 401);
         }
+
+        return getValidUser(user.getId());
     }
 
     private void validateEmailIsAvailable(String email) {
-        boolean emailExists = userRepository.emailExistsBy(email);
+        boolean emailExists = userRepository.existsByEmail(email);
         if (emailExists) {
             throw new ForbiddenException(EMAIL_UNAVAILABLE.getMessage(), EMAIL_UNAVAILABLE.getErrorCode());
         }

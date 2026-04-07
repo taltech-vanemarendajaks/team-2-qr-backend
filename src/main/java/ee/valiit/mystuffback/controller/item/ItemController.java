@@ -27,16 +27,15 @@ public class ItemController {
     @Operation(summary = "Addition of a new item", description = "itemName and Date are mandatory fields")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OK"),
-            @ApiResponse(responseCode = "403", description = "Item with this name already exists (errorCode 333)",
-                    content = @Content(schema = @Schema(implementation = ApiError.class)))})
-    public void addItem(@RequestParam Integer userId, @RequestBody @Valid ItemDto itemDto) {
-        itemService.addItem(userId, itemDto);
+            })
+    public void addItem(@RequestBody @Valid ItemDto itemDto) {
+        itemService.addItem(itemDto);
     }
 
     @GetMapping("/items")
     @Operation(summary = "Returns a list of user's items by date and name.")
-    public List<ItemBasicInfo> findItems(@RequestParam Integer userId) {
-        return itemService.findItems(userId);
+    public List<ItemBasicInfo> findItems() {
+        return itemService.findItems();
     }
 
     @GetMapping("/item")
