@@ -28,11 +28,18 @@ public class ItemService {
     private final ItemMapper itemMapper;
     private final ItemImageRepository itemImageRepository;
     private final UserService userService;
+    private final RateLimitService rateLimitService;
 
 
     @Transactional
     public void addItem(ItemDto itemDto) {
         User user = userService.getAuthenticatedUser();
+        rateLimitService.checkRateLimitOrThrow(
+                "create-item",
+                String.valueOf(user.getId()),
+                10,
+                60
+        );
         Item item = itemMapper.toItem(itemDto);
         item.setUser(user);
         item.setQrToken(UUID.randomUUID().toString().replace("-", ""));
