@@ -12,17 +12,15 @@ public class RateLimitService {
 
     private record WindowCounter(long windowStartEpochSeconds, int count) {}
 
-    // key: endpoint + ":" + ip
+    // key: endpoint + ":" + identifier (IP or userId)
     private final Map<String, WindowCounter> counters = new ConcurrentHashMap<>();
 
-    /**
-     * Allow up to maxRequests within windowSeconds for a given (endpoint, ip).
-     * Throws TooManyRequestsException if exceeded.
-     */
-    public void checkRateLimitOrThrow(String endpointKey, String clientIp, int maxRequests, int windowSeconds) {
-        if (clientIp == null || clientIp.isBlank()) clientIp = "unknown";
+    public void checkRateLimitOrThrow(String endpointKey, String identifier, int maxRequests, int windowSeconds) {
+        if(identifier == null || identifier.isBlank()) {
+            identifier = "unknown";
+        }
 
-        String key = endpointKey + ":" + clientIp;
+        String key = endpointKey + ":" + identifier;
         long now = Instant.now().getEpochSecond();
 
         counters.compute(key, (k, existing) -> {

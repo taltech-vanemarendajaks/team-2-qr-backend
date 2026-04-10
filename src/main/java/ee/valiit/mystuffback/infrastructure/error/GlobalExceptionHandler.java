@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(TooManyRequestsException.class)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
-    public ApiError handleTooManyRequests(TooManyRequestsException ex) {
+    public ApiError handleTooManyRequests(TooManyRequestsException ignored) {
         ApiError apiError = new ApiError();
         apiError.setMessage(Error.RATE_LIMITED.getMessage());
         apiError.setErrorCode(Error.RATE_LIMITED.getErrorCode());
