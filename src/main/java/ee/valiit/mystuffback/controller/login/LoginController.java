@@ -40,6 +40,10 @@ public class LoginController {
     private final UserMapper userMapper;
 
     private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
         return request.getRemoteAddr();
     }
 
@@ -58,10 +62,17 @@ public class LoginController {
             @ApiResponse(responseCode = "403", description = "Email or password incorrect",
                     content = @Content(schema = @Schema(implementation = ApiError.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many login attempts",
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
+
     public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        rateLimitService.checkRateLimitOrThrow("login", getClientIp(httpRequest), 10, 60);
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        String clientIp = getClientIp(httpRequest);
+
+        rateLimitService.checkRateLimitOrThrow("login:" + normalizedEmail, clientIp, 3, 30);
+
         User user = loginService.login(request.getEmail(), request.getPassword());
 
         UsernamePasswordAuthenticationToken auth =
