@@ -63,19 +63,7 @@ public class LoginController {
     public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         rateLimitService.checkRateLimitOrThrow("login", getClientIp(httpRequest), 10, 60);
         User user = loginService.login(request.getEmail(), request.getPassword());
-
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
-        SecurityContextHolder.setContext(context);
-
-        httpRequest.getSession(true).setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                context
-        );
-
+        establishSession(user, httpRequest);
         return userMapper.toLoginResponse(user);
     }
 
@@ -90,20 +78,20 @@ public class LoginController {
         rateLimitService.checkRateLimitOrThrow("google-login", getClientIp(httpRequest), 10, 60);
         GoogleAuthService.GoogleUserInfo userInfo = googleAuthService.verify(request.getIdToken());
         User user = loginService.googleLogin(userInfo);
+        establishSession(user, httpRequest);
+        return userMapper.toLoginResponse(user);
+    }
 
+    private void establishSession(User user, HttpServletRequest request) {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
-
-        httpRequest.getSession(true).setAttribute(
+        request.getSession(true).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 context
         );
-
-        return userMapper.toLoginResponse(user);
     }
     @PostMapping("/logout")
     @Operation(summary = "Log out", description = "Ends the current session.")
@@ -123,7 +111,7 @@ public class LoginController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            throw new ForbiddenException("Not authenticated", 401);
+            throw new ForbiddenException("Access denied", 403);
         }
 
         return userMapper.toLoginResponse(user);

@@ -11,12 +11,8 @@ public interface UserMapper {
 
     @Mapping(source = "id", target = "userId")
     @Mapping(source = "role.name", target = "roleName")
-    @Mapping(source = "username", target = "username")
     LoginResponse toLoginResponse(User user);
 
-    @Mapping(source = "username", target = "username")
-    @Mapping(source = "password", target = "password")
-    @Mapping(source = "email", target = "email")
     @Mapping(expression = "java(Status.ACTIVE.getCode())", target = "status")
     User toUser(UserDto userDto);
 }

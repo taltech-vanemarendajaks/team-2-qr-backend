@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 
 public class BytesConverter {
 
+    private BytesConverter() {}
+
     public static byte[] stringToBytes(String value) {
         return value.getBytes(StandardCharsets.UTF_8);
     }

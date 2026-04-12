@@ -24,7 +24,7 @@ public class LoginService {
 
     public User login(String email, String password) {
         User user = getValidActiveUser(email.trim(), password);
-        user.getRole().getName();
+        user.getRole().getName(); // force lazy-load role before entity detaches from session
         return user;
     }
 
@@ -44,7 +44,8 @@ public class LoginService {
 
         if (user == null) {
             // 3. Auto-create user
-            Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME);
+            Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME)
+                    .orElseThrow(() -> new IllegalStateException("Role not found: " + CUSTOMER_ROLE_NAME));
             user = new User();
             user.setGoogleId(userInfo.googleId());
             user.setEmail(userInfo.email());
@@ -54,7 +55,7 @@ public class LoginService {
             user.setRole(role);
             userRepository.save(user);
         }
-        user.getRole().getName();
+        user.getRole().getName(); // force lazy-load role before entity detaches from session
         return user;
     }
 

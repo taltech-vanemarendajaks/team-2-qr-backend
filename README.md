@@ -21,6 +21,30 @@ Backend REST API for MyStuffLabelled, a personal inventory system that enables u
 ## Frontend Repository
 https://github.com/KatharinaMat/mystufffront
 
+## Prerequisites
+
+### To run the app
+- **Docker Desktop** (includes Docker Compose) — https://www.docker.com/products/docker-desktop
+- **Git**
+
+### For VS Code development
+These are only needed so VS Code understands the Java code (fixes red file errors). Not required to run the app.
+- **JDK 21** — https://adoptium.net/temurin/releases/?version=21
+- **VS Code extension**: `vscjava.vscode-java-pack` (Java Extension Pack)
+
+## .env Setup
+
+The `.env` file is not included in the repository. Create it manually in the project root before running Docker:
+
+```
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+DB_USERNAME=<your-db-username>
+DB_PASSWORD=<your-db-password>
+```
+
+Google OAuth credentials can be obtained from the project owner or from Google Cloud Console.
+
 ## Local Development
 ### Run the docker container with:
 ````
@@ -43,3 +67,22 @@ docker compose down -v
 ````
 docker compose up -d
 ````
+
+## Running Tests
+
+Tests use [Testcontainers](https://testcontainers.com/) and require a running Docker daemon.
+
+### Prerequisites
+- **Docker Desktop** must be running
+
+### Run all tests
+````
+./gradlew test
+````
+
+### Run a single test class
+````
+./gradlew test --tests "ee.valiit.mystuffback.controller.item.ItemControllerTest"
+````
+
+Test results are written to `build/reports/tests/test/index.html`.

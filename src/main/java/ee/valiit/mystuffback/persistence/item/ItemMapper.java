@@ -22,9 +22,6 @@ public interface ItemMapper {
 
     @Mapping(source = "name", target = "itemName")
     @Mapping(source = "date", target = "itemDate")
-    @Mapping(source = "model", target = "model")
-    @Mapping(source = "comment", target = "comment")
-    @Mapping(source = "qrToken", target = "qrToken")
     @Mapping(constant = "", target = "imageData")
     @Mapping(target = "imageId", ignore = true)
     ItemDto toItemDto(Item item);
@@ -33,8 +30,6 @@ public interface ItemMapper {
     @Mapping(target = "user", ignore = true)    // we set it in service
     @Mapping(source = "itemName", target = "name")
     @Mapping(source = "itemDate", target = "date")
-    @Mapping(source = "model", target = "model")
-    @Mapping(source = "comment", target = "comment")
     @Mapping(expression = "java(Status.ACTIVE.getCode())", target = "status")
     Item toItem(ItemDto itemDto);
 
