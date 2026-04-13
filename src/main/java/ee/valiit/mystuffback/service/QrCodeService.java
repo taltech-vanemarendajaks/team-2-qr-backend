@@ -1,11 +1,12 @@
 package ee.valiit.mystuffback.service;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import ee.valiit.mystuffback.infrastructure.exception.PrimaryKeyNotFoundException;
 import ee.valiit.mystuffback.persistence.item.Item;
 import ee.valiit.mystuffback.persistence.item.ItemRepository;
+import ee.valiit.mystuffback.persistence.user.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 
 @Service
@@ -13,6 +14,8 @@ import ee.valiit.mystuffback.persistence.item.ItemRepository;
 public class QrCodeService {
 
     private final ItemRepository itemRepository;
+    private final UserService userService;
+
     @Value("${mystuff.server.address}")
     private String serverAddress;
 
@@ -20,8 +23,9 @@ public class QrCodeService {
     private String itemPath;
 
     public String getQrCode(Integer itemId) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(()-> new PrimaryKeyNotFoundException("itemId",itemId));
+        User user = userService.getAuthenticatedUser();
+        Item item = itemRepository.findActiveItemByIdAndUserId(itemId, user.getId())
+                .orElseThrow(() -> new PrimaryKeyNotFoundException("itemId", itemId));
         return constructImageQrLink(item);
     }
 

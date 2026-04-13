@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface RoleRepository extends JpaRepository<Role, Integer> {
 
     @Query("select r from Role r where r.name = :roleName")
-    Role getRoleBy(String roleName);
+    Optional<Role> getRoleBy(String roleName);
 
 
 

@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -124,7 +123,7 @@ public class ItemService {
         ItemImage image = itemImageRepository.findById(imageId)
                 .orElseThrow(() -> new PrimaryKeyNotFoundException("imageId", imageId));
         if (!image.getItem().getId().equals(itemId)) {
-            throw new IllegalArgumentException("Image does not belong to this item");
+            throw new PrimaryKeyNotFoundException("imageId", imageId);
         }
         itemImageRepository.deleteById(imageId);
     }

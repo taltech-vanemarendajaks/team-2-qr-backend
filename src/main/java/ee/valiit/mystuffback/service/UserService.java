@@ -8,7 +8,6 @@ import ee.valiit.mystuffback.persistence.role.RoleRepository;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserMapper;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,6 @@ import static ee.valiit.mystuffback.infrastructure.status.Status.ACTIVE;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    public static final int CUSTOMER_ROLE_ID = 2;
     public static final String CUSTOMER_ROLE_NAME = "customer";
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -31,13 +29,14 @@ public class UserService {
 
 
     @Transactional
-    public void addUser(@Valid UserDto userDto) {
+    public void addUser(UserDto userDto) {
         String username = userDto.getUsername().trim();
         String email = userDto.getEmail().trim();
 
         validateEmailIsAvailable(email);
 
-        Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME);
+        Role role = roleRepository.getRoleBy(CUSTOMER_ROLE_NAME)
+                .orElseThrow(() -> new IllegalStateException("Role not found: " + CUSTOMER_ROLE_NAME));
         User user = userMapper.toUser(userDto);
 
         user.setUsername(username);
@@ -58,7 +57,7 @@ public class UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            throw new ForbiddenException("Not authenticated", 401);
+            throw new ForbiddenException("Access denied", 403);
         }
 
         return getValidUser(user.getId());

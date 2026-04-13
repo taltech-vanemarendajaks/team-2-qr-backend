@@ -19,7 +19,7 @@ import java.io.Serializable;
 public class UserDto implements Serializable {
 
     @NotBlank(message = "Username is required")
-    @Size(message = "Username must be 3-20 charactes", min = 3, max = 20)
+    @Size(message = "Username must be 3-20 characters", min = 3, max = 20)
     private String username;
 
     @NotBlank
