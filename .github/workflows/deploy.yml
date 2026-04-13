@@ -16,20 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create Dockerfile
-        run: |
-          cat > Dockerfile << 'EOF'
-          FROM eclipse-temurin:25-jdk AS builder
-          WORKDIR /app
-          COPY . .
-          RUN chmod +x ./gradlew && ./gradlew bootJar --no-daemon
-
-          FROM eclipse-temurin:25-jre
-          WORKDIR /app
-          COPY --from=builder /app/build/libs/*.jar app.jar
-          ENTRYPOINT ["java", "-jar", "app.jar"]
-          EOF
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -50,13 +36,19 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: GHCR_TOKEN
+          envs: GHCR_TOKEN,DB_USERNAME,DB_PASSWORD
           script: |
             cd /home/ubuntu/team-2-qr-backend
             git pull origin master
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Create .env file from GitHub secrets
+            cat > /home/ubuntu/team-2-qr-backend/.env << EOF
+            DB_USERNAME=$DB_USERNAME
+            DB_PASSWORD=$DB_PASSWORD
+            EOF
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
             docker stop team2-postgres team2-backend || true
             docker rm team2-postgres team2-backend || true
             docker compose -f /home/ubuntu/docker-compose.yml pull
             docker compose -f /home/ubuntu/docker-compose.yml up -d
-
