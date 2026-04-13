@@ -16,6 +16,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create Dockerfile
+        run: |
+          cat > Dockerfile << 'EOF'
+          FROM eclipse-temurin:25-jdk AS builder
+          WORKDIR /app
+          COPY . .
+          RUN chmod +x ./gradlew && ./gradlew bootJar --no-daemon
+
+          FROM eclipse-temurin:25-jre
+          WORKDIR /app
+          COPY --from=builder /app/build/libs/*.jar app.jar
+          ENTRYPOINT ["java", "-jar", "app.jar"]
+          EOF
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -41,7 +55,6 @@ jobs:
             cd /home/ubuntu/team-2-qr-backend
             git pull origin master
 
-            # Create .env file from GitHub secrets
             cat > /home/ubuntu/team-2-qr-backend/.env << EOF
             DB_USERNAME=$DB_USERNAME
             DB_PASSWORD=$DB_PASSWORD
