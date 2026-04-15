@@ -51,6 +51,7 @@ The controller layer is kept thin; all business logic lives in services. DTOs ar
 - **BCrypt migration**: `LoginService` auto-migrates legacy plaintext passwords to BCrypt on first login.
 - **Google OAuth**: `GoogleAuthService` validates the ID token; `LoginService.googleLogin` looks up or auto-creates the user. Username is derived as a display name (first word of name, or email prefix) — no uniqueness constraint.
 - **Image storage**: Receipt images stored as `bytea` in the DB. `BytesConverter` (`infrastructure/util/`) handles Base64 ↔ `byte[]`.
+- **Password reset tokens**: `PasswordResetService` generates UUID tokens stored in `mystuff.password_reset_token`. Tokens expire after a configurable TTL (default 60 min) and are single-use (`used` flag). `EmailService` delivers the reset link via Mailtrap. The forgot-password endpoint always returns 200 to avoid leaking whether an email is registered.
 
 ### Database
 
@@ -61,7 +62,7 @@ Default credentials (local/Docker): loaded from `.env` (`DB_USERNAME` / `DB_PASS
 ### Security
 
 - Spring Security filter chain in `SecurityConfig`: sessions enabled (`IF_REQUIRED`), CSRF disabled.
-- Public routes: `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/signup`, Swagger UI. All other routes require an authenticated session.
+- Public routes: `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/signup`, `/api/auth/forgot-password`, `/api/auth/reset-password`, Swagger UI. All other routes require an authenticated session.
 - Auth is session-based — `LoginController` stores the logged-in `User` in `HttpSession` after credential or Google token verification.
 - BCrypt password hashing via `PasswordConfig` bean.
 - CORS configured in `CorsConfig`.
@@ -69,7 +70,7 @@ Default credentials (local/Docker): loaded from `.env` (`DB_USERNAME` / `DB_PASS
 ### Exception handling
 
 Two `@ControllerAdvice` classes work together:
-- `RestExceptionHandler` (extends `ResponseEntityExceptionHandler`): handles `ForbiddenException` (403), `DataNotFoundException` / `PrimaryKeyNotFoundException` (404), and `MethodArgumentNotValidException` (400).
+- `RestExceptionHandler` (extends `ResponseEntityExceptionHandler`): handles `ForbiddenException` (403), `DataNotFoundException` / `PrimaryKeyNotFoundException` (404), `BadRequestException` (400), and `MethodArgumentNotValidException` (400).
 - `GlobalExceptionHandler`: handles `ConstraintViolationException` (400), `TooManyRequestsException` (429), and catch-all `Exception` (500).
 
 ### Testing
@@ -85,10 +86,14 @@ Test classes:
 - `ItemControllerTest` — ownership enforcement (IDOR), session scoping, unauthenticated access
 - `UserRegistrationTest` — duplicate email rejected, duplicate username allowed
 - `LoginServiceTest` — `deriveDisplayName` logic for Google login (unit test with Mockito)
+- `PasswordResetIntegrationTest` — forgot-password (valid email, unknown email, invalid format), reset-password (valid token, expired, used, non-existent), token single-use enforcement, validation edge cases; mocks `MailtrapClient`
 
 ### Configuration
 
 Key `application.properties` values:
 - `mystuff.item.path=/item?itemId=` — base URL fragment for QR codes
 - `mystuff.server.address` — set to frontend origin for QR URL construction
-- Secrets loaded from `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DB_USERNAME`, `DB_PASSWORD`
+- `mystuff.reset.token-ttl-minutes` — password reset token TTL (default 60)
+- `mystuff.reset.link-base` — base URL for the reset link sent in emails
+- `mailtrap.api-token` / `mailtrap.from-email` / `mailtrap.from-name` — Mailtrap email config
+- Secrets loaded from `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DB_USERNAME`, `DB_PASSWORD`, `MAILTRAP_API_TOKEN`, `MAILTRAP_FROM_EMAIL`, `MAILTRAP_FROM_NAME`, `RESET_LINK_BASE`

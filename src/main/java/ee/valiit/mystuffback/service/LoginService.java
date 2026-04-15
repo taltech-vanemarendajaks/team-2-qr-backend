@@ -1,20 +1,24 @@
 package ee.valiit.mystuffback.service;
 
+import ee.valiit.mystuffback.infrastructure.exception.BadRequestException;
 import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.persistence.role.Role;
 import ee.valiit.mystuffback.persistence.role.RoleRepository;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.INCORRECT_CREDENTIALS;
+import static ee.valiit.mystuffback.infrastructure.error.Error.INCORRECT_CURRENT_PASSWORD;
 import static ee.valiit.mystuffback.service.UserService.CUSTOMER_ROLE_NAME;
 import static ee.valiit.mystuffback.infrastructure.status.Status.ACTIVE;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LoginService {
@@ -123,5 +127,21 @@ public class LoginService {
 
     private boolean looksLikeBcrypt(String s) {
         return s.startsWith("$2a$") || s.startsWith("$2b$") || s.startsWith("$2y$");
+    }
+
+    @Transactional
+    public void changePassword(Integer userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ForbiddenException("User not found", 403));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadRequestException(
+                    INCORRECT_CURRENT_PASSWORD.getMessage(),
+                    INCORRECT_CURRENT_PASSWORD.getErrorCode());
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed for user id={}", userId);
     }
 }

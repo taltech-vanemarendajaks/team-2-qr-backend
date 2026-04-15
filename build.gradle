@@ -48,6 +48,9 @@ dependencies {
 
     // SQL with parameter values
     implementation 'p6spy:p6spy:3.9.1'
+
+    // Mailtrap email sending
+    implementation 'io.mailtrap:mailtrap-java:1.2.0'
 }
 
 compileJava {

@@ -102,4 +102,25 @@ CREATE INDEX IF NOT EXISTS ix_item_user_id ON mystuff.item(user_id);
 CREATE INDEX IF NOT EXISTS ix_image_item_id ON mystuff.image(item_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_item_qr_token ON mystuff.item(qr_token);
 
+-- Table: password_reset_token
+CREATE TABLE IF NOT EXISTS mystuff.password_reset_token (
+  id          serial        NOT NULL,
+  user_id     int           NOT NULL,
+  token       varchar(36)   NOT NULL,
+  expires_at  timestamptz   NOT NULL,
+  used        boolean       NOT NULL DEFAULT false,
+  created_at  timestamptz   NOT NULL DEFAULT now(),
+  CONSTRAINT password_reset_token_pk PRIMARY KEY (id),
+  CONSTRAINT ux_password_reset_token UNIQUE (token)
+);
+
+ALTER TABLE mystuff.password_reset_token
+  ADD CONSTRAINT prt_user
+  FOREIGN KEY (user_id)
+  REFERENCES mystuff."user" (id)
+  NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX IF NOT EXISTS ix_prt_token ON mystuff.password_reset_token(token);
+CREATE INDEX IF NOT EXISTS ix_prt_user_id ON mystuff.password_reset_token(user_id);
+
 -- End of file.

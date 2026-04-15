@@ -24,6 +24,8 @@ public class SecurityConfig {
                                 "/api/auth/google",
                                 "/api/auth/logout",
                                 "/api/auth/signup",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()

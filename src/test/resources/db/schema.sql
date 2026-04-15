@@ -1,17 +1,21 @@
--- Schema for integration tests — mirrors database/2_create.sql exactly.
+-- Schema for integration tests.
+-- Drops and recreates the mystuff schema on every Spring context startup so that
+-- ALTER TABLE / ADD CONSTRAINT statements are always fresh and never conflict
+-- when multiple Spring contexts share the same Testcontainers database.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE SCHEMA IF NOT EXISTS mystuff;
+DROP SCHEMA IF EXISTS mystuff CASCADE;
+CREATE SCHEMA mystuff;
 
-CREATE TABLE IF NOT EXISTS mystuff.image (
+CREATE TABLE mystuff.image (
   id serial NOT NULL,
   item_id int NOT NULL,
   image_data bytea NOT NULL,
   CONSTRAINT image_pk PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS mystuff.item (
+CREATE TABLE mystuff.item (
   id serial NOT NULL,
   user_id int NOT NULL,
   name varchar(50) NOT NULL,
@@ -23,13 +27,13 @@ CREATE TABLE IF NOT EXISTS mystuff.item (
   CONSTRAINT item_pk PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS mystuff.role (
+CREATE TABLE mystuff.role (
   id serial NOT NULL,
   name varchar(20) NOT NULL,
   CONSTRAINT role_pk PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS mystuff."user" (
+CREATE TABLE mystuff."user" (
   id serial NOT NULL,
   role_id int NOT NULL,
   username varchar(255) NOT NULL,
@@ -60,6 +64,26 @@ ALTER TABLE mystuff."user"
   REFERENCES mystuff.role (id)
   NOT DEFERRABLE INITIALLY IMMEDIATE;
 
-CREATE INDEX IF NOT EXISTS ix_item_user_id ON mystuff.item(user_id);
-CREATE INDEX IF NOT EXISTS ix_image_item_id ON mystuff.image(item_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_item_qr_token ON mystuff.item(qr_token);
+CREATE INDEX ix_item_user_id ON mystuff.item(user_id);
+CREATE INDEX ix_image_item_id ON mystuff.image(item_id);
+CREATE UNIQUE INDEX ux_item_qr_token ON mystuff.item(qr_token);
+
+CREATE TABLE mystuff.password_reset_token (
+  id          serial        NOT NULL,
+  user_id     int           NOT NULL,
+  token       varchar(36)   NOT NULL,
+  expires_at  timestamptz   NOT NULL,
+  used        boolean       NOT NULL DEFAULT false,
+  created_at  timestamptz   NOT NULL DEFAULT now(),
+  CONSTRAINT password_reset_token_pk PRIMARY KEY (id),
+  CONSTRAINT ux_password_reset_token UNIQUE (token)
+);
+
+ALTER TABLE mystuff.password_reset_token
+  ADD CONSTRAINT prt_user
+  FOREIGN KEY (user_id)
+  REFERENCES mystuff."user" (id)
+  NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX ix_prt_token ON mystuff.password_reset_token(token);
+CREATE INDEX ix_prt_user_id ON mystuff.password_reset_token(user_id);
