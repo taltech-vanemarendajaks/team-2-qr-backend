@@ -15,6 +15,10 @@ public class RateLimitService {
     // key: endpoint + ":" + identifier (IP or userId)
     private final Map<String, WindowCounter> counters = new ConcurrentHashMap<>();
 
+    public void resetAll() {
+        counters.clear();
+    }
+
     public void checkRateLimitOrThrow(String endpointKey, String identifier, int maxRequests, int windowSeconds) {
         if(identifier == null || identifier.isBlank()) {
             identifier = "unknown";

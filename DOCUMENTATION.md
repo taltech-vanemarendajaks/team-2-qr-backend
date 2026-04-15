@@ -77,6 +77,7 @@ Files: [database/2_create.sql](database/2_create.sql), [database/3_import.sql](d
 
 ```
 role ──< user ──< item ──< image
+              └──< password_reset_token
 ```
 
 | Relationship | Type | Description |
@@ -84,6 +85,7 @@ role ──< user ──< item ──< image
 | role → user | 1:N | A role has many users |
 | user → item | 1:N | A user owns many items |
 | item → image | 1:N | An item has many images |
+| user → password_reset_token | 1:N | A user can have many reset tokens |
 
 ### Tables
 
@@ -121,6 +123,16 @@ role ──< user ──< item ──< image
 | id | PK | |
 | item_id | FK → item.id, NOT NULL | |
 | image_data | NOT NULL | Receipt or item photo (binary) |
+
+#### `mystuff.password_reset_token`
+| Column | Constraints | Notes |
+|--------|-------------|-------|
+| id | PK | serial |
+| user_id | FK → user.id, NOT NULL | |
+| token | varchar(36), NOT NULL, UNIQUE | UUID |
+| expires_at | timestamptz, NOT NULL | |
+| used | boolean, NOT NULL, DEFAULT false | Single-use flag |
+| created_at | timestamptz, NOT NULL, DEFAULT now() | |
 
 ### Soft Delete
 Items are never hard-deleted. Setting `status = 'D'` hides the item from all queries.
@@ -206,6 +218,67 @@ Authenticate via Google OAuth. Receives a Google ID token and returns user ident
 |--------|---------|
 | 200 | Login successful |
 | 403 | Invalid Google token |
+
+#### `POST /api/auth/forgot-password`
+Request a password reset email. Always returns 200 to prevent email enumeration.
+
+**Rate limit:** 3 requests / 5 minutes per IP
+
+**Request body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Responses:**
+| Status | Meaning |
+|--------|---------|
+| 200 | Request received (regardless of whether the email is registered) |
+| 400 | Invalid email format |
+| 429 | Too many requests |
+
+#### `POST /api/auth/reset-password`
+Complete a password reset using a token from the reset email.
+
+**Rate limit:** 10 requests / 60 seconds per IP
+
+**Request body:**
+```json
+{
+  "token": "uuid-string",
+  "newPassword": "string (8–100 characters)"
+}
+```
+
+**Responses:**
+| Status | Meaning |
+|--------|---------|
+| 200 | Password reset successfully |
+| 400 | Validation error or invalid/expired/used token (error code 551) |
+| 429 | Too many requests |
+
+#### `POST /api/auth/change-password`
+Change the password for the currently logged-in user.
+
+**Requires:** authenticated session
+
+**Rate limit:** 5 requests / 60 seconds per user
+
+**Request body:**
+```json
+{
+  "currentPassword": "string",
+  "newPassword": "string (8–100 characters)"
+}
+```
+
+**Responses:**
+| Status | Meaning |
+|--------|---------|
+| 200 | Password changed successfully |
+| 400 | Current password is incorrect (error code 552) or validation error |
+| 429 | Too many requests |
 
 ### Items
 
@@ -326,6 +399,8 @@ Submit a support request. Requires a valid token from `/verify-qr`.
 | 111 | Incorrect username or password |
 | 222 | Username already taken |
 | 333 | Item name already exists for this user |
+| 551 | Invalid or expired password reset token |
+| 552 | Current password is incorrect |
 
 ## 5. Security
 
@@ -339,8 +414,17 @@ In-memory sliding window limiter, keyed by `endpoint + client IP`.
 |----------|-------|
 | POST `/api/auth/login` | 10 requests / 60 seconds |
 | POST `/api/auth/signup` | 5 requests / 60 seconds |
+| POST `/api/auth/forgot-password` | 3 requests / 5 minutes |
+| POST `/api/auth/reset-password` | 10 requests / 60 seconds |
+| POST `/api/auth/change-password` | 5 requests / 60 seconds |
 
 Returns `HTTP 429 Too Many Requests` when exceeded.
+
+### Password Reset Tokens
+- Tokens are UUIDs stored in `mystuff.password_reset_token`.
+- Expire after 1 hour (configurable via `mystuff.reset.token-ttl-minutes`).
+- Single-use: marked `used = true` after a successful password reset.
+- The forgot-password endpoint always returns 200 to prevent email enumeration — it never reveals whether an address is registered.
 
 ### Support Token
 A support request requires two steps:
@@ -357,6 +441,26 @@ The frontend tracks failed login attempts per email in `localStorage`. After **3
 ### Prerequisites
 - Docker + Docker Compose
 - Java 21 (for local runs without Docker)
+
+### Environment Variables (`.env`)
+
+Copy `.env.example` to `.env` and fill in the required values:
+
+```
+DB_USERNAME=...
+DB_PASSWORD=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+# Mailtrap — used to send password reset emails
+# Sign up at https://mailtrap.io (free tier is sufficient for local dev)
+MAILTRAP_API_TOKEN=<your-mailtrap-api-token>
+MAILTRAP_FROM_EMAIL=hello@demomailtrap.co
+MAILTRAP_FROM_NAME=Tagly
+
+# Base URL for the reset link included in emails
+RESET_LINK_BASE=http://localhost:8081/reset-password
+```
 
 ### Run with Docker (recommended)
 
@@ -392,6 +496,28 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 | hanna | 123 | customer |
 | katha | 123 | customer |
 
+### Running Tests
+
+Tests use [Testcontainers](https://testcontainers.com/), which spins up a real PostgreSQL 16 container — no manual database setup needed. Requires Docker to be running.
+
+Use the provided script, which also clears stale Gradle lock files before running (prevents `Timeout waiting to lock file hash cache` errors after a crashed build):
+
+```bash
+# Run all tests
+./run-tests.sh
+
+# Run a single test class
+./run-tests.sh --tests "ee.valiit.mystuffback.controller.item.ItemControllerTest"
+```
+
+Any extra arguments are passed through to `./gradlew test` directly. To invoke Gradle manually:
+
+```bash
+./gradlew test
+```
+
+Test results are written to `build/reports/tests/test/index.html`.
+
 ### Frontend Setup
 
 **Prerequisites:** Node.js (LTS recommended), npm
@@ -423,13 +549,14 @@ After login, the frontend stores `userId`, `roleName`, and `username` in `sessio
 |---|---------|--------|-------|
 | 1 | **Login redesign** | Done | Switched to email-based login |
 | 2 | **Google OAuth** | Done | `POST /api/auth/google` with Google ID token |
-| 3 | **Push notifications** | Planned | Notify users of important events |
-| 4 | **Warranty expiry emails** | Planned | Cron job — email when warranty is about to expire or has expired |
-| 5 | **Family & Friends sharing** | Planned | Share item access with other users |
-| 6 | **Admin panel** | Planned | Dashboard for admin users to manage accounts and requests |
-| 7 | **New frontend design** | Planned | UI redesign |
-| 8 | **Deploy to TalTech server** | Planned | Production deployment |
-| 9 | **Testing** | Planned | Unit and integration tests |
+| 3 | **Password Reset** | Done | `POST /api/auth/forgot-password`, `/reset-password`, `/change-password`; Mailtrap email delivery |
+| 4 | **Testing** | Done | Integration tests via Testcontainers; unit tests with Mockito |
+| 5 | **Push notifications** | Planned | Notify users of important events |
+| 6 | **Warranty expiry emails** | Planned | Cron job — email when warranty is about to expire or has expired |
+| 7 | **Family & Friends sharing** | Planned | Share item access with other users |
+| 8 | **Admin panel** | Planned | Dashboard for admin users to manage accounts and requests |
+| 9 | **New frontend design** | Planned | UI redesign |
+| 10 | **Deploy to TalTech server** | Planned | Production deployment |
 
 ## 8. Development Guidelines
 

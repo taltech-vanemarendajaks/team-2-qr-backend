@@ -2,6 +2,7 @@ package ee.valiit.mystuffback.infrastructure;
 
 
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
+import ee.valiit.mystuffback.infrastructure.exception.BadRequestException;
 import ee.valiit.mystuffback.infrastructure.exception.DataNotFoundException;
 import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.infrastructure.exception.PrimaryKeyNotFoundException;
@@ -18,6 +19,15 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @Slf4j
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler
+    public ResponseEntity<ApiError> handleBadRequestException(BadRequestException exception) {
+        log.warn("400 Bad Request: {}", exception.getMessage());
+        ApiError apiError = new ApiError();
+        apiError.setMessage(exception.getMessage());
+        apiError.setErrorCode(exception.getErrorCode());
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
 
     @ExceptionHandler
     public ResponseEntity<ApiError> handleForbiddenException(ForbiddenException exception) {

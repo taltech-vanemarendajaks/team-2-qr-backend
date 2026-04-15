@@ -70,19 +70,13 @@ docker compose up -d
 
 ## Running Tests
 
-Tests use [Testcontainers](https://testcontainers.com/) and require a running Docker daemon.
+Requires **Docker Desktop** to be running.
 
-### Prerequisites
-- **Docker Desktop** must be running
-
-### Run all tests
 ````
-./gradlew test
+./run-tests.sh
 ````
 
-### Run a single test class
+Run a single test class:
 ````
-./gradlew test --tests "ee.valiit.mystuffback.controller.item.ItemControllerTest"
+./run-tests.sh --tests "ee.valiit.mystuffback.controller.item.ItemControllerTest"
 ````
-
-Test results are written to `build/reports/tests/test/index.html`.

@@ -1,14 +1,18 @@
 package ee.valiit.mystuffback.controller.login;
 
+import ee.valiit.mystuffback.controller.login.dto.ChangePasswordRequest;
+import ee.valiit.mystuffback.controller.login.dto.ForgotPasswordRequest;
 import ee.valiit.mystuffback.controller.login.dto.GoogleLoginRequest;
 import ee.valiit.mystuffback.controller.login.dto.LoginRequest;
 import ee.valiit.mystuffback.controller.login.dto.LoginResponse;
+import ee.valiit.mystuffback.controller.login.dto.ResetPasswordRequest;
 import ee.valiit.mystuffback.infrastructure.error.ApiError;
 import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserMapper;
 import ee.valiit.mystuffback.service.GoogleAuthService;
 import ee.valiit.mystuffback.service.LoginService;
+import ee.valiit.mystuffback.service.PasswordResetService;
 import ee.valiit.mystuffback.service.RateLimitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,6 +42,7 @@ public class LoginController {
     private final RateLimitService rateLimitService;
     private final GoogleAuthService googleAuthService;
     private final UserMapper userMapper;
+    private final PasswordResetService passwordResetService;
 
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
@@ -104,6 +109,72 @@ public class LoginController {
                 context
         );
     }
+    @PostMapping("/forgot-password")
+    @Operation(
+            summary = "Request password reset",
+            description = """
+                    Accepts an email address. If an active account exists, sends a password reset link.
+                    Always returns 200 — never reveals whether the email is registered.
+                    Rate limited to 3 requests per 5 minutes per email address.
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Request processed"),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many requests",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                               HttpServletRequest httpRequest) {
+        rateLimitService.checkRateLimitOrThrow(
+                "forgot-password:" + request.getEmail().trim().toLowerCase(),
+                getClientIp(httpRequest), 3, 300);
+        passwordResetService.requestPasswordReset(request.getEmail());
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(
+            summary = "Reset password",
+            description = "Accepts a reset token and a new password. Token must be valid, unexpired, and unused."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password reset successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token (errorCode 551)",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many requests",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                              HttpServletRequest httpRequest) {
+        rateLimitService.checkRateLimitOrThrow(
+                "reset-password", getClientIp(httpRequest), 10, 60);
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+    }
+
+    @PostMapping("/change-password")
+    @Operation(
+            summary = "Change password",
+            description = "Changes password for the currently authenticated user. Requires correct current password."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password changed"),
+            @ApiResponse(responseCode = "400", description = "Incorrect current password (errorCode 552)",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many requests",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public void changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                               HttpServletRequest httpRequest) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth.getPrincipal() instanceof User user)) {
+            throw new ForbiddenException("Access denied", 403);
+        }
+        rateLimitService.checkRateLimitOrThrow(
+                "change-password:" + user.getId(), getClientIp(httpRequest), 5, 60);
+        loginService.changePassword(user.getId(), request.getCurrentPassword(), request.getNewPassword());
+    }
+
     @PostMapping("/logout")
     @Operation(summary = "Log out", description = "Ends the current session.")
     @ApiResponse(responseCode = "200", description = "Logout successful")

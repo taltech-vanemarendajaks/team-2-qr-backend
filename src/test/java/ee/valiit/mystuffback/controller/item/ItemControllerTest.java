@@ -11,6 +11,7 @@ import ee.valiit.mystuffback.persistence.item.ItemRepository;
 import ee.valiit.mystuffback.persistence.role.RoleRepository;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
+import ee.valiit.mystuffback.service.RateLimitService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     @Autowired UserRepository userRepository;
     @Autowired ItemRepository itemRepository;
     @Autowired RoleRepository roleRepository;
+    @Autowired RateLimitService rateLimitService;
 
     MockMvc mockMvc;
     final ObjectMapper objectMapper = new ObjectMapper()
@@ -60,6 +62,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        rateLimitService.resetAll();
         mockMvc = MockMvcBuilders.webAppContextSetup(context)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();

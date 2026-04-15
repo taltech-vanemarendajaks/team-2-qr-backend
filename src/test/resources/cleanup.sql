@@ -2,4 +2,5 @@
 -- Roles are not touched — they are seeded once at container startup and must persist.
 DELETE FROM mystuff.image;
 DELETE FROM mystuff.item;
+DELETE FROM mystuff.password_reset_token;
 DELETE FROM mystuff."user";
