@@ -123,4 +123,14 @@ ALTER TABLE mystuff.password_reset_token
 CREATE INDEX IF NOT EXISTS ix_prt_token ON mystuff.password_reset_token(token);
 CREATE INDEX IF NOT EXISTS ix_prt_user_id ON mystuff.password_reset_token(user_id);
 
+-- Admin tracking columns on user
+ALTER TABLE mystuff."user"
+  ADD COLUMN IF NOT EXISTS last_login_at timestamptz NULL;
+
+ALTER TABLE mystuff."user"
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE mystuff."user"
+  ADD COLUMN IF NOT EXISTS auth_provider varchar(10) NOT NULL DEFAULT 'PASSWORD';
+
 -- End of file.
