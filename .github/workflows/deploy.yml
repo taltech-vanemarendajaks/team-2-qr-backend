@@ -23,7 +23,6 @@ jobs:
           WORKDIR /app
           COPY . .
           RUN chmod +x ./gradlew && ./gradlew bootJar --no-daemon
-
           FROM eclipse-temurin:25-jre
           WORKDIR /app
           COPY --from=builder /app/build/libs/*.jar app.jar
@@ -37,19 +36,36 @@ jobs:
           events {
               worker_connections 1024;
           }
-
           http {
               server {
                   listen 80;
-
-                  location / {
-                      proxy_pass http://192.168.42.25:8081;
+                  location /api/ {
+                      proxy_pass http://team2-backend:8080;
                       proxy_set_header Host $host;
                       proxy_set_header X-Real-IP $remote_addr;
                   }
-
-                  location /api/ {
+                  location /item {
                       proxy_pass http://team2-backend:8080;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                  }
+                  location /items {
+                      proxy_pass http://team2-backend:8080;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                  }
+                  location /qr-code {
+                      proxy_pass http://team2-backend:8080;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                  }
+                  location ~ ^/[0-9]+/images/ {
+                      proxy_pass http://team2-backend:8080;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                  }
+                  location / {
+                      proxy_pass http://192.168.42.25:8081;
                       proxy_set_header Host $host;
                       proxy_set_header X-Real-IP $remote_addr;
                   }
@@ -80,7 +96,6 @@ jobs:
                 interval: 5s
                 timeout: 3s
                 retries: 20
-
             backend:
               image: ghcr.io/taltech-vanemarendajaks/team-2-qr-backend:latest
               container_name: team2-backend
@@ -97,7 +112,6 @@ jobs:
                 SPRING_SQL_INIT_MODE: always
                 SPRING_JPA_HIBERNATE_DDL_AUTO: none
                 MYSTUFF_SERVER_ADDRESS: http://193.40.157.127
-
             nginx:
               image: nginx:alpine
               container_name: team2-nginx
@@ -108,7 +122,6 @@ jobs:
               depends_on:
                 - backend
               restart: unless-stopped
-
           volumes:
             pgdata:
           EOF
@@ -154,7 +167,7 @@ jobs:
           script: |
             cd /home/ubuntu/team-2-qr-backend
             git pull origin master
-            docker stop team2-postgres team2-backend team2-nginx || true
-            docker rm team2-postgres team2-backend team2-nginx || true
+            docker stop team2-nginx team2-backend team2-postgres || true
+            docker rm team2-nginx team2-backend team2-postgres || true
             docker compose -f /home/ubuntu/docker-compose.prod.yml pull
             docker compose -f /home/ubuntu/docker-compose.prod.yml up -d
