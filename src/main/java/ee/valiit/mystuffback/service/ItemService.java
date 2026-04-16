@@ -4,7 +4,6 @@ import ee.valiit.mystuffback.controller.item.dto.ItemBasicInfo;
 import ee.valiit.mystuffback.controller.item.dto.ItemDto;
 import ee.valiit.mystuffback.infrastructure.exception.PrimaryKeyNotFoundException;
 import ee.valiit.mystuffback.infrastructure.status.Status;
-import ee.valiit.mystuffback.infrastructure.util.BytesConverter;
 import ee.valiit.mystuffback.persistence.item.Item;
 import ee.valiit.mystuffback.persistence.item.ItemMapper;
 import ee.valiit.mystuffback.persistence.item.ItemRepository;
@@ -15,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +28,7 @@ public class ItemService {
     private final ItemImageRepository itemImageRepository;
     private final UserService userService;
     private final RateLimitService rateLimitService;
+    private final ImageProcessingService imageProcessingService;
 
 
     @Transactional
@@ -61,10 +62,11 @@ public class ItemService {
         itemImageRepository.save(itemImage);
     }
 
-    private static ItemImage createItemImage(Item item, String imageData) {
+    private ItemImage createItemImage(Item item, String imageData) {
         ItemImage itemImage = new ItemImage();
         itemImage.setItem(item);
-        itemImage.setImageData(BytesConverter.stringToBytes(imageData));
+        byte[] processedImageBytes = imageProcessingService.processBase64Image(imageData);
+        itemImage.setImageData(processedImageBytes);
         return itemImage;
     }
 
@@ -94,10 +96,10 @@ public class ItemService {
 
     private void addImageDataToItemDto(ItemImage itemImage, ItemDto itemDto) {
         byte[] itemImageData = itemImage.getImageData();
-        itemDto.setImageData(BytesConverter.bytesToString(itemImageData));
+        String base64Image = Base64.getEncoder().encodeToString(itemImageData);
+        itemDto.setImageData("data:image/jpeg;base64," + base64Image);
         itemDto.setImageId(itemImage.getId());
     }
-
 
     public void updateItemInfo(Integer itemId, ItemDto itemDto) {
         Item item = getValidUserItem(itemId);
@@ -107,8 +109,20 @@ public class ItemService {
     }
 
     private void updateItemImage(ItemDto itemDto, Item item) {
-        itemImageRepository.deleteItemImagesBy(item);
-        handleAddItemImage(item, itemDto.getImageData());
+        boolean removeImage = Boolean.TRUE.equals(itemDto.getRemoveImage());
+        boolean hasNewImage = hasImage(itemDto.getImageData());
+
+        if (removeImage) {
+            itemImageRepository.deleteItemImagesBy(item);
+            return;
+        }
+
+        if (hasNewImage) {
+            itemImageRepository.deleteItemImagesBy(item);
+            handleAddItemImage(item, itemDto.getImageData());
+        }
+
+        // else → do nothing (keep existing image)
     }
 
     public void removeItem(Integer itemId) {

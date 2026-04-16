@@ -1,5 +1,6 @@
 package ee.valiit.mystuffback.infrastructure.error;
 
+import ee.valiit.mystuffback.infrastructure.exception.ForbiddenException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,16 @@ public class GlobalExceptionHandler {
         apiError.setErrorCode(Error.VALIDATION_ERROR.getErrorCode());
         return apiError;
     }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handleForbidden(ForbiddenException ex) {
+        ApiError apiError = new ApiError();
+        apiError.setMessage(ex.getMessage());
+        apiError.setErrorCode(ex.getErrorCode());
+        return apiError;
+    }
+
     @ExceptionHandler(TooManyRequestsException.class)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     public ApiError handleTooManyRequests(TooManyRequestsException ignored) {
