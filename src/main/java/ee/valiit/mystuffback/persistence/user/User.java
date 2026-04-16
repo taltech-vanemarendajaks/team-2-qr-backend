@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.OffsetDateTime;
+
 @Getter
 @Setter
 @Entity
@@ -25,7 +27,6 @@ public class User {
     @Column(name = "username", nullable = false, length = 50)
     private String username;
 
-
     @Column(name = "password", length = 255)
     private String password;
 
@@ -39,5 +40,14 @@ public class User {
 
     @Column(name = "google_uid", length = 255, unique = true)
     private String googleId;
+
+    @Column(name = "last_login_at")
+    private OffsetDateTime lastLoginAt;
+
+    @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "auth_provider", nullable = false, length = 10)
+    private String authProvider;
 
 }

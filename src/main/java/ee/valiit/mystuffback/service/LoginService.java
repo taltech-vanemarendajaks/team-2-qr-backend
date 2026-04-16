@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+
 import static ee.valiit.mystuffback.infrastructure.error.Error.INCORRECT_CREDENTIALS;
 import static ee.valiit.mystuffback.infrastructure.error.Error.INCORRECT_CURRENT_PASSWORD;
 import static ee.valiit.mystuffback.service.UserService.CUSTOMER_ROLE_NAME;
@@ -26,8 +28,11 @@ public class LoginService {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
 
+    @Transactional
     public User login(String email, String password) {
         User user = getValidActiveUser(email.trim(), password);
+        user.setLastLoginAt(OffsetDateTime.now());
+        userRepository.save(user);
         user.getRole().getName(); // force lazy-load role before entity detaches from session
         return user;
     }
@@ -57,8 +62,12 @@ public class LoginService {
             user.setPassword(passwordEncoder.encode("GOOGLE_AUTH_ONLY_" + userInfo.googleId()));
             user.setStatus(ACTIVE.getCode());
             user.setRole(role);
+            user.setCreatedAt(OffsetDateTime.now());
+            user.setAuthProvider("GOOGLE");
             userRepository.save(user);
         }
+        user.setLastLoginAt(OffsetDateTime.now());
+        userRepository.save(user);
         user.getRole().getName(); // force lazy-load role before entity detaches from session
         return user;
     }

@@ -44,6 +44,8 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(role);
         user.setStatus(ACTIVE.getCode());
+        user.setCreatedAt(java.time.OffsetDateTime.now());
+        user.setAuthProvider("PASSWORD");
 
         userRepository.save(user);
     }
