@@ -10,4 +10,9 @@ public class ForbiddenException extends RuntimeException {
         super(message);
         this.errorCode = errorCode;
     }
+
+    public ForbiddenException(String message) {
+        super(message);
+        this.errorCode = 403;
+    }
 }
