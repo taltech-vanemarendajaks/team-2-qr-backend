@@ -19,11 +19,11 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-
+@RequestMapping("/api/item")
 public class ItemController {
     private final ItemService itemService;
 
-    @PostMapping("/item")
+    @PostMapping
     @Operation(summary = "Addition of a new item", description = "itemName and Date are mandatory fields")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "OK"),
@@ -32,25 +32,25 @@ public class ItemController {
         itemService.addItem(itemDto);
     }
 
-    @GetMapping("/items")
+    @GetMapping("/all")
     @Operation(summary = "Returns a list of user's items by date and name.")
     public List<ItemBasicInfo> findItems() {
         return itemService.findItems();
     }
 
-    @GetMapping("/item")
+    @GetMapping
     @Operation(summary = "Returns all details of a chosen item")
     public ItemDto findItem(@RequestParam Integer itemId) {
         return itemService.findItem(itemId);
     }
 
-    @PutMapping("/item")
+    @PutMapping
     @Operation(summary = "Changes the details of an existing item")
     public void updateItemInfo(@RequestParam Integer itemId, @RequestBody ItemDto itemDto) {
         itemService.updateItemInfo(itemId, itemDto);
     }
 
-    @DeleteMapping("/item")
+    @DeleteMapping
     @Operation(summary = "Removes item from system")
     public void removeItem(@RequestParam Integer itemId) {
         itemService.removeItem(itemId);
