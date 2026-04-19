@@ -45,9 +45,9 @@ public class User {
     private OffsetDateTime lastLoginAt;
 
     @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     @Column(name = "auth_provider", nullable = false, length = 10)
-    private String authProvider;
+    private String authProvider = "PASSWORD";
 
 }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,10 +27,11 @@ public class ItemController {
     @PostMapping
     @Operation(summary = "Addition of a new item", description = "itemName and Date are mandatory fields")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created"),
             })
-    public void addItem(@RequestBody @Valid ItemDto itemDto) {
+    public ResponseEntity<Void> addItem(@RequestBody @Valid ItemDto itemDto) {
         itemService.addItem(itemDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/all")

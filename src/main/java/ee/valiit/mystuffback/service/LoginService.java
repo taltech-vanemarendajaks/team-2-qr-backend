@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.OffsetDateTime;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.INCORRECT_CREDENTIALS;
@@ -114,8 +116,11 @@ public class LoginService {
         if (looksLikeBcrypt(storedPassword)) {
             ok = passwordEncoder.matches(password, storedPassword);
         } else {
-            // legacy plaintext support
-            ok = password.equals(storedPassword);
+            // legacy plaintext support — constant-time compare to prevent timing oracle
+            ok = MessageDigest.isEqual(
+                    password.getBytes(StandardCharsets.UTF_8),
+                    storedPassword.getBytes(StandardCharsets.UTF_8)
+            );
 
             // if legacy login succeeds => upgrade to bcrypt automatically
             if (ok) {

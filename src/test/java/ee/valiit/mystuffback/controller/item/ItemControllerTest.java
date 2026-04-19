@@ -123,20 +123,20 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_getItems_isForbidden() throws Exception {
-        mockMvc.perform(get("/items"))
+        mockMvc.perform(get("/api/item/all"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void unauthenticated_getItem_isForbidden() throws Exception {
-        mockMvc.perform(get("/item").param("itemId", hannasItem.getId().toString()))
+        mockMvc.perform(get("/api/item").param("itemId", hannasItem.getId().toString()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void unauthenticated_addItem_isForbidden() throws Exception {
-        var dto = new ItemDto("new thing", LocalDate.now(), null, null, null, null, null);
-        mockMvc.perform(post("/item")
+        var dto = new ItemDto("new thing", LocalDate.now(), null, null, null, null, null, null);
+        mockMvc.perform(post("/api/item")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden());
@@ -144,8 +144,8 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_updateItem_isForbidden() throws Exception {
-        var dto = new ItemDto("changed", LocalDate.now(), null, null, null, null, null);
-        mockMvc.perform(put("/item")
+        var dto = new ItemDto("changed", LocalDate.now(), null, null, null, null, null, null);
+        mockMvc.perform(put("/api/item")
                         .param("itemId", hannasItem.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
@@ -154,7 +154,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_deleteItem_isForbidden() throws Exception {
-        mockMvc.perform(delete("/item").param("itemId", hannasItem.getId().toString()))
+        mockMvc.perform(delete("/api/item").param("itemId", hannasItem.getId().toString()))
                 .andExpect(status().isForbidden());
     }
 
@@ -166,7 +166,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void getItem_ownedByOtherUser_isNotFound() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
 
-        mockMvc.perform(get("/item")
+        mockMvc.perform(get("/api/item")
                         .param("itemId", kathasItem.getId().toString())
                         .session(session))
                 .andExpect(status().isNotFound());
@@ -175,9 +175,9 @@ class ItemControllerTest extends AbstractIntegrationTest {
     @Test
     void updateItem_ownedByOtherUser_isNotFound() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
-        var dto = new ItemDto("hacked", LocalDate.now(), null, null, null, null, null);
+        var dto = new ItemDto("hacked", LocalDate.now(), null, null, null, null, null, null);
 
-        mockMvc.perform(put("/item")
+        mockMvc.perform(put("/api/item")
                         .param("itemId", kathasItem.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
@@ -189,7 +189,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void deleteItem_ownedByOtherUser_isNotFound() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
 
-        mockMvc.perform(delete("/item")
+        mockMvc.perform(delete("/api/item")
                         .param("itemId", kathasItem.getId().toString())
                         .session(session))
                 .andExpect(status().isNotFound());
@@ -203,7 +203,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void getItems_returnsOnlyOwnItems() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
 
-        mockMvc.perform(get("/items").session(session))
+        mockMvc.perform(get("/api/item/all").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].itemName", is("telekas")));
@@ -213,7 +213,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void getItem_ownedByCurrentUser_succeeds() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
 
-        mockMvc.perform(get("/item")
+        mockMvc.perform(get("/api/item")
                         .param("itemId", hannasItem.getId().toString())
                         .session(session))
                 .andExpect(status().isOk())
@@ -227,13 +227,13 @@ class ItemControllerTest extends AbstractIntegrationTest {
     @Test
     void addItem_isLinkedToSessionUser() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
-        var dto = new ItemDto("new thing", LocalDate.of(2025, 1, 1), null, null, null, null, null);
+        var dto = new ItemDto("new thing", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
 
-        mockMvc.perform(post("/item")
+        mockMvc.perform(post("/api/item")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(session))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         List<Item> hannaItems = itemRepository.findActiveItemsByUserId(hanna.getId());
         assertThat(hannaItems).hasSize(2);
@@ -250,18 +250,18 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void twoUsers_canCreateItemsWithSameName() throws Exception {
         var hannaSession = loginAs("hanna@test.com", "test123");
         var kathaSession = loginAs("katha@test.com", "test456");
-        var dto = new ItemDto("shared name", LocalDate.of(2025, 1, 1), null, null, null, null, null);
+        var dto = new ItemDto("shared name", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
 
-        mockMvc.perform(post("/item")
+        mockMvc.perform(post("/api/item")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(hannaSession))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/item")
+        mockMvc.perform(post("/api/item")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(kathaSession))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 }

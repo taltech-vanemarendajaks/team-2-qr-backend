@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -64,10 +63,12 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             org.springframework.web.context.request.WebRequest request) {
 
-        FieldError firstError = ex.getBindingResult().getFieldErrors().get(0);
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .collect(java.util.stream.Collectors.joining("; "));
 
         ApiError apiError = new ApiError();
-        apiError.setMessage(firstError.getField() + ": " + firstError.getDefaultMessage());
+        apiError.setMessage(message);
         apiError.setErrorCode(777);
 
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);

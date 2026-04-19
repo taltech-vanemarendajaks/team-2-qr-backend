@@ -76,7 +76,7 @@ class UserRegistrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(signupJson("existinguser", "Password1", "other@example.com")))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -84,6 +84,6 @@ class UserRegistrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(signupJson("brandnew", "Password1", "brandnew@example.com")))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 }
