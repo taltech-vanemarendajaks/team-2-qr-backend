@@ -49,9 +49,12 @@ The controller layer is kept thin; all business logic lives in services. DTOs ar
 - **Soft deletes**: Items use `status` varchar ('A' = active, 'D' = deleted). Queries filter on `status = 'A'`.
 - **In-memory rate limiting**: `RateLimitService` uses a sliding window keyed by `endpoint:clientIp`. Applied via `@PostMapping` handlers in `LoginController`.
 - **BCrypt migration**: `LoginService` auto-migrates legacy plaintext passwords to BCrypt on first login.
-- **Google OAuth**: `GoogleAuthService` validates the ID token; `LoginService.googleLogin` looks up or auto-creates the user. Username is derived as a display name (first word of name, or email prefix) — no uniqueness constraint.
+- **Google OAuth**: `GoogleAuthService` validates the ID token **locally** using `GoogleIdTokenVerifier` (no remote HTTP call); `LoginService.googleLogin` looks up or auto-creates the user. Username is derived as a display name (first word of name, or email prefix) — no uniqueness constraint.
 - **Image storage**: Receipt images stored as `bytea` in the DB. `BytesConverter` (`infrastructure/util/`) handles Base64 ↔ `byte[]`.
-- **Password reset tokens**: `PasswordResetService` generates UUID tokens stored in `mystuff.password_reset_token`. Tokens expire after a configurable TTL (default 60 min) and are single-use (`used` flag). `EmailService` delivers the reset link via Mailtrap. The forgot-password endpoint always returns 200 to avoid leaking whether an email is registered.
+- **Password reset tokens**: `PasswordResetService` generates UUID tokens stored in `mystuff.password_reset_token`. Tokens expire after a configurable TTL (default 60 min) and are single-use (`used` flag). `EmailService` delivers the reset link via Mailtrap. The forgot-password endpoint always returns 200 to avoid leaking whether an email is registered. Unknown-email requests sleep 200–500 ms to prevent timing-based enumeration.
+- **Timing-safe password comparison**: `LoginService` uses `MessageDigest.isEqual` when comparing legacy plaintext passwords to prevent timing oracle attacks.
+- **User defaults**: `User` entity initialises `createdAt = OffsetDateTime.now()` and `authProvider = "PASSWORD"` at construction time.
+- **Session establishment**: `LoginController.establishSession()` populates Spring Security's `GrantedAuthority` list from the user's role so `@PreAuthorize` role checks work. `GET /api/auth/me` returns **204 No Content** when there is no active session.
 
 ### Database
 
@@ -62,16 +65,19 @@ Default credentials (local/Docker): loaded from `.env` (`DB_USERNAME` / `DB_PASS
 ### Security
 
 - Spring Security filter chain in `SecurityConfig`: sessions enabled (`IF_REQUIRED`), CSRF disabled.
+- **COOP header**: `SecurityConfig` sets `Cross-Origin-Opener-Policy: same-origin-allow-popups` to support Google OAuth popup flows.
 - Public routes: `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/signup`, `/api/auth/forgot-password`, `/api/auth/reset-password`, Swagger UI. All other routes require an authenticated session.
 - Auth is session-based — `LoginController` stores the logged-in `User` in `HttpSession` after credential or Google token verification.
 - BCrypt password hashing via `PasswordConfig` bean.
 - CORS configured in `CorsConfig`.
+- **Session cookie hardening**: `application.properties` sets `SameSite=Strict`, `HttpOnly=true`, `Secure=true` on the session cookie.
+- **Request size limits**: Tomcat and multipart uploads are capped at 15 MB to mitigate DoS via large payloads. Set above the 10 MB image cap to accommodate Base64 encoding overhead (~33%).
 
 ### Exception handling
 
 Two `@ControllerAdvice` classes work together:
-- `RestExceptionHandler` (extends `ResponseEntityExceptionHandler`): handles `ForbiddenException` (403), `DataNotFoundException` / `PrimaryKeyNotFoundException` (404), `BadRequestException` (400), and `MethodArgumentNotValidException` (400).
-- `GlobalExceptionHandler`: handles `ConstraintViolationException` (400), `TooManyRequestsException` (429), and catch-all `Exception` (500).
+- `RestExceptionHandler` (extends `ResponseEntityExceptionHandler`): handles `ForbiddenException` (403), `DataNotFoundException` / `PrimaryKeyNotFoundException` (404), `BadRequestException` (400), and `MethodArgumentNotValidException` (400). Collects **all** field errors, joined by `"; "`.
+- `GlobalExceptionHandler`: handles `ConstraintViolationException` (400, all violations collected), `TooManyRequestsException` (429), and catch-all `Exception` (500).
 
 ### Testing
 

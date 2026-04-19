@@ -51,6 +51,9 @@ dependencies {
 
     // Mailtrap email sending
     implementation 'io.mailtrap:mailtrap-java:1.2.0'
+
+    // Google ID token local verification (avoids sending tokens to remote endpoint)
+    implementation 'com.google.api-client:google-api-client:2.7.0'
 }
 
 compileJava {

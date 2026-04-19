@@ -29,9 +29,13 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,10 +49,6 @@ public class LoginController {
     private final PasswordResetService passwordResetService;
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 
@@ -99,8 +99,10 @@ public class LoginController {
     }
 
     private void establishSession(User user, HttpServletRequest request) {
+        List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
         UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+                new UsernamePasswordAuthenticationToken(user, null, authorities);
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
@@ -183,20 +185,19 @@ public class LoginController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Current logged-in user", description = "Returns the currently authenticated user from session.")
+    @Operation(summary = "Current logged-in user", description = "Returns the currently authenticated user from session, or 204 if not authenticated.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Authenticated user returned"),
-            @ApiResponse(responseCode = "401", description = "Not authenticated",
-                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+            @ApiResponse(responseCode = "204", description = "Not authenticated")
     })
-    public LoginResponse me() {
+    public ResponseEntity<LoginResponse> me() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            throw new ForbiddenException("Access denied", 403);
+            return ResponseEntity.noContent().build();
         }
 
-        return userMapper.toLoginResponse(user);
+        return ResponseEntity.ok(userMapper.toLoginResponse(user));
     }
 
 }

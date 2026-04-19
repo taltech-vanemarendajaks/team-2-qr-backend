@@ -12,10 +12,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/auth")
 public class UserController {
 
     private final UserService userService;
@@ -25,19 +28,19 @@ public class UserController {
         return request.getRemoteAddr();
     }
 
-    @PostMapping("/api/auth/signup")
+    @PostMapping("/signup")
     @Operation(summary = "New user account creation", description = "all fields are mandatory")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "This email already exists(errorCode: 223)",
                     content = @Content(schema = @Schema(implementation = ApiError.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
-    public void addUser(@RequestBody @Valid UserDto userDto, HttpServletRequest httpRequest) {
-
+    public ResponseEntity<Void> addUser(@RequestBody @Valid UserDto userDto, HttpServletRequest httpRequest) {
         rateLimitService.checkRateLimitOrThrow("signup", getClientIp(httpRequest), 5, 60);
         userService.addUser(userDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
 }

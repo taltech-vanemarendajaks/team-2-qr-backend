@@ -160,7 +160,7 @@ Register a new user account.
 **Responses:**
 | Status | Meaning |
 |--------|---------|
-| 200 | Account created |
+| 201 | Account created |
 | 400 | Validation error |
 | 409 | Username already taken (error code 222) |
 | 429 | Too many requests |
@@ -282,7 +282,7 @@ Change the password for the currently logged-in user.
 
 ### Items
 
-#### `POST /item`
+#### `POST /api/item`
 Create a new item.
 
 **Query params:** `userId` (required)
@@ -301,25 +301,25 @@ Create a new item.
 **Responses:**
 | Status | Meaning |
 |--------|---------|
-| 200 | Item created |
+| 201 | Item created |
 | 409 | Item name already exists for this user (error code 333) |
 
-#### `GET /items`
+#### `GET /api/item/all`
 Get all active items for a user.
 
 **Query params:** `userId` (required)
 
-#### `GET /item`
+#### `GET /api/item`
 Get full details of a single item, including images.
 
 **Query params:** `itemId` (required)
 
-#### `PUT /item`
+#### `PUT /api/item`
 Update an item's details.
 
 **Query params:** `itemId` (required)
 
-**Request body:** Same fields as POST `/item`
+**Request body:** Same fields as POST `/api/item`
 
 **Responses:**
 | Status | Meaning |
@@ -327,19 +327,19 @@ Update an item's details.
 | 200 | Updated |
 | 404 | Item not found |
 
-#### `DELETE /item`
+#### `DELETE /api/item`
 Soft-delete an item (sets `status = 'D'`).
 
 **Query params:** `itemId` (required)
 
-#### `DELETE /{itemId}/images/{imageId}`
+#### `DELETE /api/item/{itemId}/images/{imageId}`
 Remove a specific image from an item.
 
 **Path params:** `itemId`, `imageId`
 
 ### QR Codes
 
-#### `GET /qr-code`
+#### `GET /api/qr-code`
 Get the QR code URL for an item. Assigns a `qr_token` if one doesn't exist yet.
 
 **Query params:** `itemId` (required)
@@ -405,7 +405,19 @@ Submit a support request. Requires a valid token from `/verify-qr`.
 ## 5. Security
 
 ### Password Hashing
-All passwords are stored as BCrypt hashes. Legacy plaintext passwords are automatically re-hashed on first login.
+All passwords are stored as BCrypt hashes. Legacy plaintext passwords are automatically re-hashed on first login. Legacy plaintext comparison uses `MessageDigest.isEqual` (constant-time) to prevent timing oracle attacks.
+
+### Google Token Verification
+`GoogleAuthService` verifies Google ID tokens **locally** using `GoogleIdTokenVerifier` (`com.google.api-client:google-api-client:2.7.0`). No token data is sent to a remote endpoint.
+
+### Session Cookie Hardening
+The session cookie is configured with `SameSite=Strict`, `HttpOnly=true`, and `Secure=true` in `application.properties` to mitigate CSRF and cookie theft.
+
+### Request Size Limits
+POST body and multipart uploads are capped at **15 MB** (Tomcat + Spring multipart config) to prevent DoS via oversized payloads. The limit is set above the 10 MB image cap to account for Base64 encoding overhead (~33%) when images are transmitted as JSON strings.
+
+### Cross-Origin Opener Policy
+`SecurityConfig` sets `Cross-Origin-Opener-Policy: same-origin-allow-popups` to isolate the browsing context while allowing Google OAuth popup flows.
 
 ### Rate Limiting
 In-memory sliding window limiter, keyed by `endpoint + client IP`.
@@ -425,6 +437,7 @@ Returns `HTTP 429 Too Many Requests` when exceeded.
 - Expire after 1 hour (configurable via `mystuff.reset.token-ttl-minutes`).
 - Single-use: marked `used = true` after a successful password reset.
 - The forgot-password endpoint always returns 200 to prevent email enumeration — it never reveals whether an address is registered.
+- When the email is not registered, the endpoint sleeps 200–500 ms to prevent timing-based enumeration.
 
 ### Support Token
 A support request requires two steps:

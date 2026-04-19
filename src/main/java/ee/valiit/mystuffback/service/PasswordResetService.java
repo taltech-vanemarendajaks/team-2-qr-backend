@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static ee.valiit.mystuffback.infrastructure.error.Error.INVALID_RESET_TOKEN;
 
@@ -45,6 +46,12 @@ public class PasswordResetService {
 
         if (userOpt.isEmpty()) {
             log.debug("Password reset requested for unknown email: {}", email);
+            // Simulate the time an email send would take to prevent timing-based email enumeration
+            try {
+                Thread.sleep(ThreadLocalRandom.current().nextInt(200, 500));
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
             return;
         }
 
