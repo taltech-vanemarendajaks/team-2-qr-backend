@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -109,6 +110,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
         req.setPassword(password);
 
         MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -137,6 +139,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void unauthenticated_addItem_isForbidden() throws Exception {
         var dto = new ItemDto("new thing", LocalDate.now(), null, null, null, null, null, null);
         mockMvc.perform(post("/api/item")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden());
@@ -146,6 +149,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void unauthenticated_updateItem_isForbidden() throws Exception {
         var dto = new ItemDto("changed", LocalDate.now(), null, null, null, null, null, null);
         mockMvc.perform(put("/api/item")
+                        .with(csrf())
                         .param("itemId", hannasItem.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
@@ -154,7 +158,9 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_deleteItem_isForbidden() throws Exception {
-        mockMvc.perform(delete("/api/item").param("itemId", hannasItem.getId().toString()))
+        mockMvc.perform(delete("/api/item")
+                        .with(csrf())
+                        .param("itemId", hannasItem.getId().toString()))
                 .andExpect(status().isForbidden());
     }
 
@@ -178,6 +184,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
         var dto = new ItemDto("hacked", LocalDate.now(), null, null, null, null, null, null);
 
         mockMvc.perform(put("/api/item")
+                        .with(csrf())
                         .param("itemId", kathasItem.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
@@ -190,6 +197,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
         var session = loginAs("hanna@test.com", "test123");
 
         mockMvc.perform(delete("/api/item")
+                        .with(csrf())
                         .param("itemId", kathasItem.getId().toString())
                         .session(session))
                 .andExpect(status().isNotFound());
@@ -230,6 +238,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
         var dto = new ItemDto("new thing", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/item")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(session))
@@ -253,12 +262,14 @@ class ItemControllerTest extends AbstractIntegrationTest {
         var dto = new ItemDto("shared name", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/item")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(hannaSession))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/item")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
                         .session(kathaSession))

@@ -17,4 +17,6 @@ if [[ -d "$GRADLE_DIR" ]]; then
   done < <(find "$GRADLE_DIR" -name "*.lock" 2>/dev/null)
 fi
 
+sudo chown -R "$USER" build/ 2>/dev/null || true
+
 exec ./gradlew test "$@"

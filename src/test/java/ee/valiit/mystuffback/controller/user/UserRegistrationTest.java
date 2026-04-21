@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -64,6 +65,7 @@ class UserRegistrationTest extends AbstractIntegrationTest {
     @Test
     void signup_withDuplicateEmail_isForbidden_withErrorCode223() throws Exception {
         mockMvc.perform(post("/api/auth/signup")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(signupJson("newuser", "Password1", "taken@example.com")))
                 .andExpect(status().isForbidden())
@@ -74,6 +76,7 @@ class UserRegistrationTest extends AbstractIntegrationTest {
     void signup_withDuplicateUsername_succeeds() throws Exception {
         // username is no longer a unique constraint — same display name is allowed
         mockMvc.perform(post("/api/auth/signup")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(signupJson("existinguser", "Password1", "other@example.com")))
                 .andExpect(status().isCreated());
@@ -82,6 +85,7 @@ class UserRegistrationTest extends AbstractIntegrationTest {
     @Test
     void signup_withUniqueEmail_succeeds() throws Exception {
         mockMvc.perform(post("/api/auth/signup")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(signupJson("brandnew", "Password1", "brandnew@example.com")))
                 .andExpect(status().isCreated());

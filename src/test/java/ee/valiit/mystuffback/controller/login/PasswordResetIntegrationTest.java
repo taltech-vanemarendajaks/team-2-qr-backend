@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,6 +81,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void forgotPassword_withRegisteredEmail_returns200AndSendsEmail() throws Exception {
         mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(forgotRequest("reset@example.com"))))
                 .andExpect(status().isOk());
@@ -90,6 +92,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void forgotPassword_withUnknownEmail_returns200AndDoesNotSendEmail() throws Exception {
         mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(forgotRequest("nobody@example.com"))))
                 .andExpect(status().isOk());
@@ -100,6 +103,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void forgotPassword_withInvalidEmail_returns400() throws Exception {
         mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\": \"not-an-email\"}"))
                 .andExpect(status().isBadRequest());
@@ -112,6 +116,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         String token = saveToken(testUser, Instant.now().plus(1, ChronoUnit.HOURS), false);
 
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "NewPassword1"))))
                 .andExpect(status().isOk());
@@ -128,6 +133,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         String token = saveToken(testUser, Instant.now().minus(1, ChronoUnit.HOURS), false);
 
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "NewPassword1"))))
                 .andExpect(status().isBadRequest())
@@ -139,6 +145,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         String token = saveToken(testUser, Instant.now().plus(1, ChronoUnit.HOURS), true);
 
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "NewPassword1"))))
                 .andExpect(status().isBadRequest())
@@ -148,6 +155,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void resetPassword_withNonExistentToken_returns400WithCode551() throws Exception {
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(UUID.randomUUID().toString(), "NewPassword1"))))
                 .andExpect(status().isBadRequest())
@@ -160,12 +168,14 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
 
         // First use succeeds
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "NewPassword1"))))
                 .andExpect(status().isOk());
 
         // Second use fails
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "AnotherPassword1"))))
                 .andExpect(status().isBadRequest())
@@ -175,6 +185,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void resetPassword_withBlankToken_returns400() throws Exception {
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\": \"\", \"newPassword\": \"ValidPass1\"}"))
                 .andExpect(status().isBadRequest());
@@ -185,6 +196,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         String token = saveToken(testUser, Instant.now().plus(1, ChronoUnit.HOURS), false);
 
         mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "short"))))
                 .andExpect(status().isBadRequest());
