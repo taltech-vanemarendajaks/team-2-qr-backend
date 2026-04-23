@@ -411,7 +411,7 @@ All passwords are stored as BCrypt hashes. Legacy plaintext passwords are automa
 `GoogleAuthService` verifies Google ID tokens **locally** using `GoogleIdTokenVerifier` (`com.google.api-client:google-api-client:2.7.0`). No token data is sent to a remote endpoint.
 
 ### Session Cookie Hardening
-The session cookie is configured with `SameSite=Strict`, `HttpOnly=true`, and `Secure=true` in `application.properties` to mitigate CSRF and cookie theft.
+The session cookie is configured with `SameSite=Strict` and `HttpOnly=true`. The `Secure` flag is controlled by the `SESSION_COOKIE_SECURE` environment variable (defaults to `false`). Set it to `true` only when the server runs behind HTTPS — leaving it `false` on plain HTTP prevents the browser from silently dropping the session cookie.
 
 ### Request Size Limits
 POST body and multipart uploads are capped at **15 MB** (Tomcat + Spring multipart config) to prevent DoS via oversized payloads. The limit is set above the 10 MB image cap to account for Base64 encoding overhead (~33%) when images are transmitted as JSON strings.
@@ -473,6 +473,9 @@ MAILTRAP_FROM_NAME=Tagly
 
 # Base URL for the reset link included in emails
 RESET_LINK_BASE=http://localhost:8081/reset-password
+
+# Set to true only when the server runs behind HTTPS
+SESSION_COOKIE_SECURE=false
 ```
 
 ### Run with Docker (recommended)

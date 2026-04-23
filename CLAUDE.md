@@ -70,7 +70,7 @@ Default credentials (local/Docker): loaded from `.env` (`DB_USERNAME` / `DB_PASS
 - Auth is session-based — `LoginController` stores the logged-in `User` in `HttpSession` after credential or Google token verification.
 - BCrypt password hashing via `PasswordConfig` bean.
 - CORS configured in `CorsConfig`.
-- **Session cookie hardening**: `application.properties` sets `SameSite=Strict`, `HttpOnly=true`, `Secure=true` on the session cookie.
+- **Session cookie hardening**: `application.properties` sets `SameSite=Strict`, `HttpOnly=true`. `Secure` is env-driven (`SESSION_COOKIE_SECURE`, defaults to `false`) — set to `true` only when the server runs behind HTTPS.
 - **Request size limits**: Tomcat and multipart uploads are capped at 15 MB to mitigate DoS via large payloads. Set above the 10 MB image cap to accommodate Base64 encoding overhead (~33%).
 
 ### Exception handling
@@ -102,4 +102,5 @@ Key `application.properties` values:
 - `mystuff.reset.token-ttl-minutes` — password reset token TTL (default 60)
 - `mystuff.reset.link-base` — base URL for the reset link sent in emails
 - `mailtrap.api-token` / `mailtrap.from-email` / `mailtrap.from-name` — Mailtrap email config
-- Secrets loaded from `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DB_USERNAME`, `DB_PASSWORD`, `MAILTRAP_API_TOKEN`, `MAILTRAP_FROM_EMAIL`, `MAILTRAP_FROM_NAME`, `RESET_LINK_BASE`
+- Secrets loaded from `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DB_USERNAME`, `DB_PASSWORD`, `MAILTRAP_API_TOKEN`, `MAILTRAP_FROM_EMAIL`, `MAILTRAP_FROM_NAME`, `RESET_LINK_BASE`, `SESSION_COOKIE_SECURE`
+- **CORS**: `CorsConfig` reads `mystuff.server.address` as the primary allowed origin, so setting it correctly in `.env` per environment is enough — no code change needed for new deployments.
