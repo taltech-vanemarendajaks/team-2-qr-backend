@@ -112,7 +112,6 @@ jobs:
                 SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
                 SPRING_SQL_INIT_MODE: always
                 SPRING_JPA_HIBERNATE_DDL_AUTO: none
-                MYSTUFF_SERVER_ADDRESS: http://193.40.157.127
             nginx:
               image: nginx:alpine
               container_name: team2-nginx
@@ -159,6 +158,39 @@ jobs:
           source: "docker-compose.prod.yml"
           target: "/home/ubuntu/"
 
+      - name: Write .env file
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MAILTRAP_API_TOKEN: ${{ secrets.MAILTRAP_API_TOKEN }}
+          MAILTRAP_FROM_EMAIL: ${{ secrets.MAILTRAP_FROM_EMAIL }}
+          MAILTRAP_FROM_NAME: ${{ secrets.MAILTRAP_FROM_NAME }}
+          RESET_LINK_BASE: ${{ secrets.RESET_LINK_BASE }}
+          SESSION_COOKIE_SECURE: ${{ secrets.SESSION_COOKIE_SECURE }}
+          MYSTUFF_SERVER_ADDRESS: ${{ secrets.MYSTUFF_SERVER_ADDRESS }}
+        run: |
+          printf 'GOOGLE_CLIENT_ID=%s\n' "$GOOGLE_CLIENT_ID" > .env
+          printf 'GOOGLE_CLIENT_SECRET=%s\n' "$GOOGLE_CLIENT_SECRET" >> .env
+          printf 'DB_USERNAME=%s\n' "$DB_USERNAME" >> .env
+          printf 'DB_PASSWORD=%s\n' "$DB_PASSWORD" >> .env
+          printf 'MAILTRAP_API_TOKEN=%s\n' "$MAILTRAP_API_TOKEN" >> .env
+          printf 'MAILTRAP_FROM_EMAIL=%s\n' "$MAILTRAP_FROM_EMAIL" >> .env
+          printf 'MAILTRAP_FROM_NAME=%s\n' "$MAILTRAP_FROM_NAME" >> .env
+          printf 'RESET_LINK_BASE=%s\n' "$RESET_LINK_BASE" >> .env
+          printf 'SESSION_COOKIE_SECURE=%s\n' "$SESSION_COOKIE_SECURE" >> .env
+          printf 'MYSTUFF_SERVER_ADDRESS=%s\n' "$MYSTUFF_SERVER_ADDRESS" >> .env
+
+      - name: Copy .env to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: ".env"
+          target: "/home/ubuntu/team-2-qr-backend/"
+
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -168,6 +200,7 @@ jobs:
           script: |
             cd /home/ubuntu/team-2-qr-backend
             git pull origin master
+            chmod 600 /home/ubuntu/team-2-qr-backend/.env
             docker stop team2-nginx team2-backend team2-postgres || true
             docker rm team2-nginx team2-backend team2-postgres || true
             docker compose -f /home/ubuntu/docker-compose.prod.yml pull
