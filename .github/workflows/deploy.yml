@@ -39,6 +39,7 @@ jobs:
           http {
               server {
                   listen 80;
+                  server_name tag-ly.eu www.tag-ly.eu;
                   client_max_body_size 13m;
                   location /api/ {
                       proxy_pass http://team2-backend:8080;
