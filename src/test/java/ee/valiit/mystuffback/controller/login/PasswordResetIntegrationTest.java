@@ -9,6 +9,7 @@ import ee.valiit.mystuffback.persistence.passwordreset.PasswordResetTokenReposit
 import ee.valiit.mystuffback.persistence.role.RoleRepository;
 import ee.valiit.mystuffback.persistence.user.User;
 import ee.valiit.mystuffback.persistence.user.UserRepository;
+import ee.valiit.mystuffback.service.PasswordResetService;
 import io.mailtrap.client.MailtrapClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @Autowired RoleRepository roleRepository;
     @Autowired PasswordResetTokenRepository tokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired PasswordResetService passwordResetService;
 
     @MockitoBean
     MailtrapClient mailtrapClient;
@@ -200,6 +202,21 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(resetRequest(token, "short"))))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ── purge job ───────────────────────────────────────────────────────────────
+
+    @Test
+    void purgeExpiredOrUsedTokens_removesExpiredAndUsedButKeepsActive() {
+        String activeToken  = saveToken(testUser, Instant.now().plus(1, ChronoUnit.HOURS), false);
+        String expiredToken = saveToken(testUser, Instant.now().minus(1, ChronoUnit.HOURS), false);
+        String usedToken    = saveToken(testUser, Instant.now().plus(1, ChronoUnit.HOURS), true);
+
+        passwordResetService.purgeExpiredOrUsedTokens();
+
+        assertThat(tokenRepository.findByToken(activeToken)).isPresent();
+        assertThat(tokenRepository.findByToken(expiredToken)).isEmpty();
+        assertThat(tokenRepository.findByToken(usedToken)).isEmpty();
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────

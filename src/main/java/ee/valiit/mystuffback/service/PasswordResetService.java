@@ -93,9 +93,9 @@ public class PasswordResetService {
         log.info("Password successfully reset for user id={}", user.getId());
     }
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 3 * * *", zone = "${mystuff.reset.purge-timezone:UTC}")
     @Transactional
-    public void purgeExpiredTokens() {
+    public void purgeExpiredOrUsedTokens() {
         int deleted = tokenRepository.deleteExpiredOrUsed(Instant.now());
         log.info("Purged {} expired/used password reset tokens", deleted);
     }
