@@ -8,6 +8,7 @@ import ee.valiit.mystuffback.persistence.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,5 +91,12 @@ public class PasswordResetService {
         tokenRepository.save(resetToken);
 
         log.info("Password successfully reset for user id={}", user.getId());
+    }
+
+    @Scheduled(cron = "0 0 3 * * *", zone = "${mystuff.reset.purge-timezone:UTC}")
+    @Transactional
+    public void purgeExpiredOrUsedTokens() {
+        int deleted = tokenRepository.deleteExpiredOrUsed(Instant.now());
+        log.info("Purged {} expired/used password reset tokens", deleted);
     }
 }
