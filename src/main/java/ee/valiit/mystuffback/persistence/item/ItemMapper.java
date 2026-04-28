@@ -14,6 +14,7 @@ public interface ItemMapper {
     @Mapping(source = "id", target = "itemId")
     @Mapping(source = "name", target = "itemName")
     @Mapping(source = "date", target = "itemDate")
+    @Mapping(target = "warrantyDaysRemaining", ignore = true)
     ItemBasicInfo toItemBasicInfo(Item item);
 
 
@@ -37,5 +38,7 @@ public interface ItemMapper {
     @InheritConfiguration(name = "toItem")
     @Mapping(ignore = true, target = "status")
     @Mapping(ignore = true, target = "qrToken")
+    @Mapping(target = "warrantyEndDate", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @Mapping(target = "warrantyNotifyAt", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     Item updateItem(@MappingTarget Item item, ItemDto itemDto);
 }

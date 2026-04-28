@@ -4,8 +4,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
     public interface ItemRepository extends JpaRepository<Item, Integer> {
 
@@ -19,6 +20,8 @@ import java.util.List;
         @Query("select i from Item i where i.qrToken = :qrToken and i.status = 'A'")
         Optional<Item> findActiveItemByQrToken(@Param("qrToken") String qrToken);
 
+        @Query("select i from Item i where i.status = 'A' and i.warrantyNotifyAt is not null and i.warrantyNotifyAt <= :now")
+        List<Item> findItemsDueForWarrantyNotification(@Param("now") Instant now);
 
     }
 

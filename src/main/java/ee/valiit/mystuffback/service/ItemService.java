@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -73,7 +75,14 @@ public class ItemService {
     public List<ItemBasicInfo> findItems() {
         User user = userService.getAuthenticatedUser();
         List<Item> items = itemRepository.findActiveItemsByUserId(user.getId());
-        return itemMapper.toItemBasicInfos(items);
+        List<ItemBasicInfo> infos = itemMapper.toItemBasicInfos(items);
+        LocalDate today = LocalDate.now();
+        infos.forEach(info -> {
+            if (info.getWarrantyEndDate() != null) {
+                info.setWarrantyDaysRemaining(ChronoUnit.DAYS.between(today, info.getWarrantyEndDate()));
+            }
+        });
+        return infos;
     }
 
     public ItemDto findItem(Integer itemId) {

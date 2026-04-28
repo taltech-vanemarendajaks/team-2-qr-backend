@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -15,4 +16,7 @@ public class ItemBasicInfo implements Serializable {
     private Integer itemId;
     private String itemName;
     private LocalDate itemDate;
+    private LocalDate warrantyEndDate;
+    private Instant warrantyNotifyAt;
+    private Long warrantyDaysRemaining;
 }
