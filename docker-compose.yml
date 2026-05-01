@@ -33,6 +33,7 @@ services:
     volumes:
       - ./:/app
       - gradle-cache:/root/.gradle
+      - gradle-project-cache:/app/.gradle
     environment:
       # NB! konteineris DB host = postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
@@ -48,3 +49,4 @@ services:
 volumes:
   pgdata:
   gradle-cache:
+  gradle-project-cache:

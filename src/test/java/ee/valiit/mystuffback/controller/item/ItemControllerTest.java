@@ -137,7 +137,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_addItem_isForbidden() throws Exception {
-        var dto = new ItemDto("new thing", LocalDate.now(), null, null, null, null, null, null);
+        var dto = new ItemDto("new thing", LocalDate.now(), null, null, null, null, null, null, null, null);
         mockMvc.perform(post("/api/item")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,7 +147,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticated_updateItem_isForbidden() throws Exception {
-        var dto = new ItemDto("changed", LocalDate.now(), null, null, null, null, null, null);
+        var dto = new ItemDto("changed", LocalDate.now(), null, null, null, null, null, null, null, null);
         mockMvc.perform(put("/api/item")
                         .with(csrf())
                         .param("itemId", hannasItem.getId().toString())
@@ -181,7 +181,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     @Test
     void updateItem_ownedByOtherUser_isNotFound() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
-        var dto = new ItemDto("hacked", LocalDate.now(), null, null, null, null, null, null);
+        var dto = new ItemDto("hacked", LocalDate.now(), null, null, null, null, null, null, null, null);
 
         mockMvc.perform(put("/api/item")
                         .with(csrf())
@@ -235,7 +235,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     @Test
     void addItem_isLinkedToSessionUser() throws Exception {
         var session = loginAs("hanna@test.com", "test123");
-        var dto = new ItemDto("new thing", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
+        var dto = new ItemDto("new thing", LocalDate.of(2025, 1, 1), null, null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/item")
                         .with(csrf())
@@ -259,7 +259,7 @@ class ItemControllerTest extends AbstractIntegrationTest {
     void twoUsers_canCreateItemsWithSameName() throws Exception {
         var hannaSession = loginAs("hanna@test.com", "test123");
         var kathaSession = loginAs("katha@test.com", "test456");
-        var dto = new ItemDto("shared name", LocalDate.of(2025, 1, 1), null, null, null, null, null, null);
+        var dto = new ItemDto("shared name", LocalDate.of(2025, 1, 1), null, null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/item")
                         .with(csrf())

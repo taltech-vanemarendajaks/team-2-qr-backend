@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Getter
@@ -49,5 +50,10 @@ public class Item {
     @Column(name = "qr_token", length = 64, unique = true)
     private String qrToken;
 
+    @Column(name = "warranty_end_date")
+    private LocalDate warrantyEndDate;
+
+    @Column(name = "warranty_notify_at")
+    private Instant warrantyNotifyAt;
 
 }

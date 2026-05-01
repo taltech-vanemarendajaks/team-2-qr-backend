@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -38,4 +39,8 @@ public class ItemDto implements Serializable {
     private String qrToken;
 
     private Boolean removeImage;
+
+    private LocalDate warrantyEndDate;
+
+    private Instant warrantyNotifyAt;
 }

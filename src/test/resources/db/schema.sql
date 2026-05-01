@@ -24,6 +24,8 @@ CREATE TABLE mystuff.item (
   comment varchar(500) NULL,
   status varchar(1) NOT NULL,
   qr_token varchar(255) NOT NULL DEFAULT gen_random_uuid()::text,
+  warranty_end_date date NULL,
+  warranty_notify_at timestamptz NULL,
   CONSTRAINT item_pk PRIMARY KEY (id)
 );
 

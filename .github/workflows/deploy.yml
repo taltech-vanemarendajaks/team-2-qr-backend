@@ -206,4 +206,9 @@ jobs:
             docker stop team2-nginx team2-backend team2-postgres || true
             docker rm team2-nginx team2-backend team2-postgres || true
             docker compose -f /home/ubuntu/docker-compose.prod.yml pull
+            docker compose -f /home/ubuntu/docker-compose.prod.yml up -d postgres
+            until docker exec team2-postgres pg_isready -U $(grep DB_USERNAME /home/ubuntu/team-2-qr-backend/.env | cut -d= -f2) -d postgres; do sleep 1; done
+            source /home/ubuntu/team-2-qr-backend/.env
+            docker exec team2-postgres psql -U $DB_USERNAME -d postgres -c "ALTER TABLE mystuff.item ADD COLUMN IF NOT EXISTS warranty_end_date date NULL;"
+            docker exec team2-postgres psql -U $DB_USERNAME -d postgres -c "ALTER TABLE mystuff.item ADD COLUMN IF NOT EXISTS warranty_notify_at timestamptz NULL;"
             docker compose -f /home/ubuntu/docker-compose.prod.yml up -d
