@@ -56,6 +56,8 @@ jobs:
             backend:
               image: ghcr.io/taltech-vanemarendajaks/team-2-qr-backend:latest
               container_name: team2-backend
+              ports:
+                - "8080:8080"
               env_file:
                 - /home/ubuntu/team-2-qr-backend/.env
               depends_on:
